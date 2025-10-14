@@ -1,0 +1,29 @@
+name: bronze_agents
+description: Schema contract for Bronze agents table
+
+schema:
+  agent_id: string
+  name: string
+  agent_type: string
+  region: string
+  status: string
+  performance_rating: double
+  joined_date: timestamp
+  ingestion_timestamp: timestamp
+  ingestion_date: string
+  source_system: string
+
+required_columns:
+  - agent_id
+  - name
+  - region
+  - ingestion_timestamp
+
+validation_rules:
+  - column: performance_rating
+    min: 0.0
+    max: 5.0
+  - column: status
+    allowed_values: ["ACTIVE", "INACTIVE", "ON_LEAVE"]
+  - column: agent_type
+    allowed_values: ["DIRECT", "BROKER", "AGENCY"]

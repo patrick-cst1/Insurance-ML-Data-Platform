@@ -1,0 +1,31 @@
+name: bronze_customers
+description: Schema contract for Bronze customers table
+
+schema:
+  customer_id: string
+  name: string
+  age: int
+  gender: string
+  email: string
+  phone: string
+  location: string
+  join_date: timestamp
+  customer_type: string
+  ingestion_timestamp: timestamp
+  ingestion_date: string
+  source_system: string
+
+required_columns:
+  - customer_id
+  - name
+  - join_date
+  - ingestion_timestamp
+
+validation_rules:
+  - column: age
+    min: 18
+    max: 120
+  - column: gender
+    allowed_values: ["M", "F", "OTHER"]
+  - column: customer_type
+    allowed_values: ["INDIVIDUAL", "CORPORATE"]

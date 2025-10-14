@@ -1,1 +1,11 @@
 customer_id,name,age,gender,location,join_date
+C1,John Smith,35,M,New York,2023-12-01
+C2,Sarah Johnson,42,F,Los Angeles,2023-11-15
+C3,Michael Chen,28,M,San Francisco,2024-01-05
+C4,Emily Davis,51,F,Chicago,2024-02-10
+C5,Robert Brown,39,M,Boston,2024-03-20
+C6,Lisa Wilson,45,F,Seattle,2024-04-15
+C7,David Martinez,33,M,Austin,2024-05-01
+C8,Jennifer Taylor,29,F,Denver,2024-06-10
+C9,James Anderson,47,M,Miami,2024-07-01
+C10,Maria Garcia,38,F,Phoenix,2024-08-01

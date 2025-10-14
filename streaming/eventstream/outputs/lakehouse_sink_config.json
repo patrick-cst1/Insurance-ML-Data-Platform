@@ -1,0 +1,18 @@
+{
+  "name": "Lakehouse Bronze Sink",
+  "description": "Real-time claims events to Bronze Lakehouse for batch replay",
+  "destination": {
+    "type": "Lakehouse",
+    "workspace": "Insurance-ML-Platform",
+    "lakehouse": "lh_bronze",
+    "table": "bronze_realtime_events",
+    "format": "Delta"
+  },
+  "input_format": "JSON",
+  "write_mode": "append",
+  "partition_columns": ["ingestion_date"],
+  "error_policy": {
+    "on_error": "skip_invalid_records",
+    "max_retries": 3
+  }
+}

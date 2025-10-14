@@ -1,8 +1,33 @@
 eventstream:
   name: es_insurance_realtime
-  inputs: []
+  description: Real-time claims event ingestion stream
+  
+  inputs:
+    - name: claims_events_source
+      type: custom_endpoint
+      format: json
+      sample_schema:
+        event_time: datetime
+        claim_id: string
+        policy_id: string
+        amount: double
+        status: string
+  
   outputs:
-    kql_database: kql_insurance_realtime
+    # KQL Database for low-latency queries
+    kql_database:
+      name: kql_insurance_realtime
+      table: realtime_claims_events
+      mapping: realtime_claims_mapping
+    
+    # Lakehouse for batch replay capability (dual-sink pattern)
     lakehouse:
       workspace_lakehouse: lh_bronze
       table: bronze_realtime_events
+      format: delta
+      partition_by: ingestion_date
+  
+  processing:
+    # Optional transformations
+    filters: []
+    enrichments: []

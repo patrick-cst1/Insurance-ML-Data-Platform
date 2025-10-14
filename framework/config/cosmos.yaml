@@ -1,10 +1,10 @@
-account: TBD
+account: ${COSMOS_ACCOUNT}  # Set via environment variable or Key Vault
 containers:
   policy_enrichment:
-    database: TBD
+    database: insurance
     container: policy-enrichment
     partition_key: /policyId
   customer_risk_profiles:
-    database: TBD
+    database: insurance
     container: customer-risk-profiles
     partition_key: /customerId

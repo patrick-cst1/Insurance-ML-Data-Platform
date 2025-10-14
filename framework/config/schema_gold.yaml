@@ -1,0 +1,60 @@
+# Gold Layer Schema Contracts
+
+gold_claims_features:
+  schema:
+    customer_id: string
+    claim_amount_sum_30d: double
+    claim_amount_avg_30d: double
+    claim_amount_max_30d: double
+    claim_amount_count_30d: long
+    claim_amount_sum_90d: double
+    claim_amount_avg_90d: double
+    claim_amount_max_90d: double
+    claim_amount_count_90d: long
+    claim_amount_sum_365d: double
+    claim_amount_avg_365d: double
+    claim_amount_max_365d: double
+    claim_amount_count_365d: long
+    claims_count_30d: long
+    claims_count_90d: long
+    claims_count_365d: long
+    days_since_last_claim: int
+    feature_timestamp: timestamp
+    load_timestamp: timestamp
+  required_columns:
+    - customer_id
+    - feature_timestamp
+    - load_timestamp
+
+gold_customer_features:
+  schema:
+    customer_id: string
+    age: int
+    location: string
+    total_policies: long
+    active_policies: long
+    total_premium: double
+    avg_premium: double
+    customer_tenure_days: int
+    feature_timestamp: timestamp
+    load_timestamp: timestamp
+  required_columns:
+    - customer_id
+    - feature_timestamp
+    - load_timestamp
+
+gold_risk_features:
+  schema:
+    customer_id: string
+    customer_risk_score: double
+    policy_risk_score: double
+    claims_frequency_score: double
+    claims_severity_score: double
+    overall_risk_level: string
+    feature_timestamp: timestamp
+    load_timestamp: timestamp
+  required_columns:
+    - customer_id
+    - customer_risk_score
+    - feature_timestamp
+    - load_timestamp

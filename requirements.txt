@@ -4,13 +4,20 @@ delta-spark==3.0.0
 
 # Azure SDK
 azure-cosmos==4.5.1
+azure-cosmos-spark==4.25.0
 azure-identity==1.15.0
 azure-keyvault-secrets==4.7.0
 
 # Data quality & testing
+great-expectations==0.18.8
 pyyaml==6.0.1
 pytest==7.4.3
 pytest-cov==4.1.0
 
+# Code quality
+flake8==6.1.0
+black==23.12.1
+
 # Utilities
 python-dateutil==2.8.2
+requests==2.31.0

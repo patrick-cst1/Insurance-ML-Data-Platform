@@ -163,3 +163,119 @@ def check_freshness(
         "latest_timestamp": str(latest_ts),
         "age_hours": age_hours
     }
+
+
+def check_value_range(
+    df: DataFrame,
+    checks: List[Dict[str, any]]
+) -> Dict[str, any]:
+    """
+    Check if column values are within specified ranges.
+    
+    Args:
+        df: DataFrame to check
+        checks: List of range checks, each with keys: column, min, max
+                Example: [{"column": "amount", "min": 0, "max": 1000000}]
+    
+    Returns:
+        Check result dict (passed, violations)
+    """
+    violations = []
+    total_count = df.count()
+    
+    for check in checks:
+        column = check["column"]
+        min_val = check.get("min")
+        max_val = check.get("max")
+        
+        if column not in df.columns:
+            violations.append({
+                "column": column,
+                "error": "Column not found in DataFrame"
+            })
+            continue
+        
+        # Build range condition
+        conditions = []
+        if min_val is not None:
+            conditions.append(col(column) < min_val)
+        if max_val is not None:
+            conditions.append(col(column) > max_val)
+        
+        if conditions:
+            # Count violations (values outside range or NULL)
+            violation_condition = conditions[0]
+            for cond in conditions[1:]:
+                violation_condition = violation_condition | cond
+            
+            violation_count = df.filter(violation_condition).count()
+            violation_ratio = violation_count / total_count if total_count > 0 else 0.0
+            
+            if violation_count > 0:
+                violations.append({
+                    "column": column,
+                    "min": min_val,
+                    "max": max_val,
+                    "violation_count": violation_count,
+                    "violation_ratio": violation_ratio
+                })
+    
+    passed = len(violations) == 0
+    
+    return {
+        "passed": passed,
+        "violations": violations,
+        "total_checks": len(checks)
+    }
+
+
+def check_completeness(
+    df: DataFrame,
+    required_columns: List[str],
+    min_completeness_ratio: float = 0.95
+) -> Dict[str, any]:
+    """
+    Check feature completeness (non-null ratio for required columns).
+    
+    Args:
+        df: DataFrame to check
+        required_columns: List of required column names
+        min_completeness_ratio: Minimum acceptable completeness ratio (0-1)
+    
+    Returns:
+        Check result dict (passed, completeness_ratios, incomplete_columns)
+    """
+    total_count = df.count()
+    completeness_ratios = {}
+    incomplete_columns = []
+    
+    for col_name in required_columns:
+        if col_name not in df.columns:
+            incomplete_columns.append({
+                "column": col_name,
+                "error": "Column not found",
+                "completeness_ratio": 0.0
+            })
+            continue
+        
+        # Count non-null values
+        non_null_count = df.filter(col(col_name).isNotNull()).count()
+        completeness_ratio = non_null_count / total_count if total_count > 0 else 0.0
+        
+        completeness_ratios[col_name] = completeness_ratio
+        
+        if completeness_ratio < min_completeness_ratio:
+            incomplete_columns.append({
+                "column": col_name,
+                "completeness_ratio": completeness_ratio,
+                "required_ratio": min_completeness_ratio
+            })
+    
+    passed = len(incomplete_columns) == 0
+    
+    return {
+        "passed": passed,
+        "completeness_ratios": completeness_ratios,
+        "incomplete_columns": incomplete_columns,
+        "min_required_ratio": min_completeness_ratio
+    }

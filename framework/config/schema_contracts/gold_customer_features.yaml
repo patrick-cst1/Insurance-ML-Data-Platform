@@ -1,0 +1,34 @@
+name: gold_customer_features
+description: Schema contract for Gold customer dimension features
+
+schema:
+  customer_id: string
+  name: string
+  age: int
+  gender: string
+  location: string
+  join_date: timestamp
+  total_policies: int
+  active_policies: int
+  avg_premium: double
+  total_premium: double
+  customer_tenure_days: int
+  customer_lifetime_value: double
+  feature_timestamp: timestamp
+  load_timestamp: timestamp
+
+required_columns:
+  - customer_id
+  - total_policies
+  - customer_tenure_days
+  - feature_timestamp
+
+validation_rules:
+  - column: total_policies
+    min: 0
+    max: 100
+  - column: customer_tenure_days
+    min: 0
+    max: 36500
+  - column: customer_lifetime_value
+    min: 0

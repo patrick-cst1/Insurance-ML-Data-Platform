@@ -26,41 +26,46 @@ def main():
     
     with PipelineTimer(logger, "clean_policies"):
         
-        # Read from Bronze
-        df_bronze = read_delta(spark, BRONZE_PATH)
-        logger.info(f"Read {df_bronze.count()} records from Bronze")
-        
-        # Data cleaning
-        df_cleaned = df_bronze \
-            .dropDuplicates(["policy_id"]) \
-            .filter(col("policy_id").isNotNull()) \
-            .withColumn("product_type", upper(trim(col("product_type")))) \
-            .withColumn("status", upper(trim(col("status")))) \
-            .withColumn("premium", col("premium").cast("double")) \
-            .filter(col("premium") > 0)
-        
-        # Data quality checks
-        null_check = check_nulls(df_cleaned, columns=["policy_id", "customer_id", "premium"], threshold=0.01)
-        if not null_check["passed"]:
-            logger.warning(f"Null check violations: {null_check['violations']}")
-        
-        dup_check = detect_duplicates(df_cleaned, key_columns=["policy_id"])
-        if not dup_check["passed"]:
-            logger.error(f"Found {dup_check['duplicate_count']} duplicates!")
-        
-        # Apply SCD2 for dimension tracking
-        df_scd2 = create_scd2_features(
-            df_cleaned,
-            entity_keys=["policy_id"],
-            timestamp_column="ingestion_timestamp"
-        )
-        
-        logger.info(f"Writing {df_scd2.count()} records to Silver")
-        
-        # Write to Silver (overwrite for simplicity, can use MERGE for incremental)
-        df_scd2.write.format("delta").mode("overwrite").save(SILVER_PATH)
-        
-        logger.info("Silver policies cleaning completed")
+        try:
+            # Read from Bronze
+            df_bronze = read_delta(spark, BRONZE_PATH)
+            logger.info(f"Read {df_bronze.count()} records from Bronze")
+            
+            # Data cleaning
+            df_cleaned = df_bronze \
+                .dropDuplicates(["policy_id"]) \
+                .filter(col("policy_id").isNotNull()) \
+                .withColumn("product_type", upper(trim(col("product_type")))) \
+                .withColumn("status", upper(trim(col("status")))) \
+                .withColumn("premium", col("premium").cast("double")) \
+                .filter(col("premium") > 0)
+            
+            # Data quality checks
+            null_check = check_nulls(df_cleaned, columns=["policy_id", "customer_id", "premium"], threshold=0.01)
+            if not null_check["passed"]:
+                logger.warning(f"Null check violations: {null_check['violations']}")
+            
+            dup_check = detect_duplicates(df_cleaned, key_columns=["policy_id"])
+            if not dup_check["passed"]:
+                logger.error(f"Found {dup_check['duplicate_count']} duplicates!")
+            
+            # Apply SCD2 for dimension tracking
+            df_scd2 = create_scd2_features(
+                df_cleaned,
+                entity_keys=["policy_id"],
+                timestamp_column="ingestion_timestamp"
+            )
+            
+            logger.info(f"Writing {df_scd2.count()} records to Silver")
+            
+            # Write to Silver (overwrite for simplicity, can use MERGE for incremental)
+            df_scd2.write.format("delta").mode("overwrite").save(SILVER_PATH)
+            
+            logger.info("Silver policies cleaning completed successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to clean policies: {str(e)}")
+            raise
 
 # COMMAND ----------
 

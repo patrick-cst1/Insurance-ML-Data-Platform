@@ -28,20 +28,7 @@
         by policy_id, bin(event_time, 1h)
 }
 
-// 3. Customer Interaction Summary (real-time)
-.create materialized-view with (backfill=true) customer_interaction_summary on table customer_interactions
-{
-    customer_interactions
-    | where event_time > ago(7d)
-    | summarize 
-        total_interactions = count(),
-        avg_duration = avg(duration_seconds),
-        avg_satisfaction = avg(satisfaction_score),
-        last_interaction = max(event_time)
-        by customer_id, interaction_type
-}
-
-// 4. Real-time Feature Union (for ML serving)
+// 3. Real-time Feature Union (for ML serving)
 .create function claims_features_realtime(lookback_hours:timespan = 1h)
 {
     realtime_claims_events

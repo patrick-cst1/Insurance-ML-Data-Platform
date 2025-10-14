@@ -26,14 +26,26 @@ def main():
         risk_features = df_policies.join(df_claims_features, on="customer_id", how="left")
         
         # Calculate overall risk score (combining Cosmos score + claims history)
+        # Normalized to 0-100 scale
         risk_features = risk_features \
+            .withColumn("claims_risk_component", 
+                       (coalesce(col("claims_count_365d"), 0) * 2).cast("double")) \
+            .withColumn("amount_risk_component",
+                       when(col("claim_amount_sum_365d") > 50000, 30)
+                       .when(col("claim_amount_sum_365d") > 10000, 15)
+                       .otherwise(0).cast("double")) \
             .withColumn("overall_risk_score", 
-                       coalesce(col("risk_score"), 50) + 
-                       (col("claims_count_365d") * 5) + 
-                       when(col("claim_amount_sum_365d") > 10000, 20).otherwise(0)) \
+                       when((coalesce(col("risk_score"), 50) + 
+                            col("claims_risk_component") + 
+                            col("amount_risk_component")) > 100, 100)
+                       .otherwise(coalesce(col("risk_score"), 50) + 
+                                 col("claims_risk_component") + 
+                                 col("amount_risk_component"))
+                       .cast("double")) \
             .withColumn("high_value_claim_ratio", 
                        when(col("claims_count_365d") > 0, 
-                            col("claim_amount_max_365d") / col("claim_amount_sum_365d")).otherwise(0))
+                            col("claim_amount_max_365d") / col("claim_amount_sum_365d")).otherwise(0.0)) \
+            .drop("claims_risk_component", "amount_risk_component")
         
         risk_features = add_feature_metadata(risk_features)
         

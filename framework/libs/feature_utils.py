@@ -29,12 +29,12 @@ def build_aggregation_features(
     feature_dfs = []
     
     for window_days in aggregation_windows:
-        # 過濾窗口內數據
+        # Filter data within time window
         windowed_df = df.filter(
             expr(f"datediff(current_date(), {timestamp_column}) <= {window_days}")
         )
         
-        # 構建聚合
+        # Build aggregation expressions
         agg_exprs = []
         for col_name, funcs in agg_columns.items():
             for func in funcs:
@@ -52,7 +52,7 @@ def build_aggregation_features(
         agg_df = windowed_df.groupBy(*entity_keys).agg(*agg_exprs)
         feature_dfs.append(agg_df)
     
-    # Join 所有窗口特徵
+    # Join all window features
     result_df = feature_dfs[0]
     for i in range(1, len(feature_dfs)):
         result_df = result_df.join(feature_dfs[i], on=entity_keys, how="outer")
@@ -90,7 +90,7 @@ def generate_point_in_time_view(
         condition = f"({event_time_column} >= {valid_from_column}) AND " \
                    f"(({valid_to_column} IS NULL) OR ({event_time_column} < {valid_to_column}))"
     
-    # 選擇每個實體在指定時間點有效嘅記錄
+    # Select valid record for each entity at specified point in time
     window_spec = Window.partitionBy(*entity_keys).orderBy(col(valid_from_column).desc())
     
     pit_df = feature_df.filter(condition) \
@@ -121,7 +121,7 @@ def create_scd2_features(
     """
     from pyspark.sql.functions import lead, hash as spark_hash
     
-    # 計算變更 hash
+    # Calculate change detection hash
     if hash_columns:
         hash_expr = spark_hash(*[col(c) for c in hash_columns])
     else:
@@ -129,7 +129,7 @@ def create_scd2_features(
     
     df = df.withColumn("row_hash", hash_expr)
     
-    # 按實體與時間排序，檢測變更
+    # Order by entity and time to detect changes
     window_spec = Window.partitionBy(*entity_keys).orderBy(col(timestamp_column))
     
     scd2_df = df.withColumn("next_hash", lead("row_hash").over(window_spec)) \

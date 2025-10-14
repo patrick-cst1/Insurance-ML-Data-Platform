@@ -33,6 +33,14 @@
       }
     },
     {
+      "name": "Bronze_Ingestion_Agents",
+      "type": "DatabricksNotebook",
+      "dependsOn": [],
+      "typeProperties": {
+        "notebookPath": "/lakehouse/bronze/notebooks/ingest_agents"
+      }
+    },
+    {
       "name": "Silver_Clean_Policies",
       "type": "DatabricksNotebook",
       "dependsOn": [
@@ -46,11 +54,75 @@
       }
     },
     {
-      "name": "Silver_Enrich_Cosmos",
+      "name": "Silver_Clean_Claims",
+      "type": "DatabricksNotebook",
+      "dependsOn": [
+        {
+          "activity": "Bronze_Ingestion_Claims",
+          "dependencyConditions": ["Succeeded"]
+        }
+      ],
+      "typeProperties": {
+        "notebookPath": "/lakehouse/silver/notebooks/clean_claims"
+      }
+    },
+    {
+      "name": "Silver_Clean_Customers",
+      "type": "DatabricksNotebook",
+      "dependsOn": [
+        {
+          "activity": "Bronze_Ingestion_Customers",
+          "dependencyConditions": ["Succeeded"]
+        }
+      ],
+      "typeProperties": {
+        "notebookPath": "/lakehouse/silver/notebooks/clean_customers"
+      }
+    },
+    {
+      "name": "Silver_Clean_Agents",
+      "type": "DatabricksNotebook",
+      "dependsOn": [
+        {
+          "activity": "Bronze_Ingestion_Agents",
+          "dependencyConditions": ["Succeeded"]
+        }
+      ],
+      "typeProperties": {
+        "notebookPath": "/lakehouse/silver/notebooks/clean_agents"
+      }
+    },
+    {
+      "name": "Silver_DQ_Checks",
       "type": "DatabricksNotebook",
       "dependsOn": [
         {
           "activity": "Silver_Clean_Policies",
+          "dependencyConditions": ["Succeeded"]
+        },
+        {
+          "activity": "Silver_Clean_Claims",
+          "dependencyConditions": ["Succeeded"]
+        },
+        {
+          "activity": "Silver_Clean_Customers",
+          "dependencyConditions": ["Succeeded"]
+        },
+        {
+          "activity": "Silver_Clean_Agents",
+          "dependencyConditions": ["Succeeded"]
+        }
+      ],
+      "typeProperties": {
+        "notebookPath": "/lakehouse/silver/notebooks/dq_checks"
+      }
+    },
+    {
+      "name": "Silver_Enrich_Cosmos",
+      "type": "DatabricksNotebook",
+      "dependsOn": [
+        {
+          "activity": "Silver_DQ_Checks",
           "dependencyConditions": ["Succeeded"]
         }
       ],

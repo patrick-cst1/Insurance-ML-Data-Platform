@@ -24,13 +24,13 @@ def get_logger(
     """
     logger = logging.getLogger(name)
     
-    # 避免重複添加 handler
+    # Avoid duplicate handler registration
     if logger.handlers:
         return logger
     
     logger.setLevel(getattr(logging, level.upper()))
     
-    # 格式化器
+    # Formatter configuration
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
@@ -41,7 +41,7 @@ def get_logger(
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     
-    # File handler（可選）
+    # File handler (optional)
     if log_to_file and log_file_path:
         file_handler = logging.FileHandler(log_file_path)
         file_handler.setFormatter(formatter)
