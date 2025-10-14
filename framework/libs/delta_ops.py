@@ -121,13 +121,24 @@ def optimize_delta(
     """
     delta_table = DeltaTable.forPath(spark, path)
     
-    # Run OPTIMIZE
-    optimize_builder = delta_table.optimize()
-    if zorder_by:
-        optimize_builder = optimize_builder.executeZOrderBy(zorder_by)
-    else:
-        optimize_builder.executeCompaction()
+    # Run OPTIMIZE with fallback for OSS Delta
+    try:
+        optimize_builder = delta_table.optimize()  # Databricks API
+        if zorder_by:
+            optimize_builder = optimize_builder.executeZOrderBy(zorder_by)
+        else:
+            optimize_builder.executeCompaction()
+    except Exception:
+        # Fallback using Spark SQL (Delta Lake OSS / Fabric runtime)
+        if zorder_by and len(zorder_by) > 0:
+            cols = ", ".join(zorder_by)
+            spark.sql(f"OPTIMIZE delta.`{path}` ZORDER BY ({cols})")
+        else:
+            spark.sql(f"OPTIMIZE delta.`{path}`")
     
-    # Run VACUUM (optional)
+    # Run VACUUM (optional) with fallback
     if vacuum_retention_hours is not None:
-        delta_table.vacuum(vacuum_retention_hours)
+        try:
+            delta_table.vacuum(vacuum_retention_hours)
+        except Exception:
+            spark.sql(f"VACUUM delta.`{path}` RETAIN {vacuum_retention_hours} HOURS")

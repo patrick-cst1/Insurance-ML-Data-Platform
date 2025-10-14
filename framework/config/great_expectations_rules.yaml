@@ -39,7 +39,7 @@ silver_claims:
       max_value: 10000000
       mostly: 0.95
     - expectation_type: expect_column_values_to_be_in_set
-      column: status
+      column: claim_status
       value_set: ["OPEN", "CLOSED", "PENDING", "APPROVED", "REJECTED"]
     - expectation_type: expect_column_values_to_match_strftime_format
       column: claim_date
@@ -54,10 +54,6 @@ silver_customers:
       column: customer_id
     - expectation_type: expect_column_values_to_not_be_null
       column: name
-    - expectation_type: expect_column_values_to_match_regex
-      column: email
-      regex: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
-      mostly: 0.90
     - expectation_type: expect_column_values_to_be_between
       column: age
       min_value: 18

@@ -15,7 +15,7 @@ cosmos:
   database: insurance
   containers:
     policy_enrichment: policy-enrichment
-    customer_risk: customer-risk-profiles
+    customer_risk_profiles: customer-risk-profiles
 
 kql:
   database: kql_insurance_realtime

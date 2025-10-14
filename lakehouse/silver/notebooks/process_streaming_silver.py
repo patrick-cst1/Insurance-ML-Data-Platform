@@ -5,7 +5,7 @@ This notebook processes events from Bronze realtime table or directly from KQL
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, window, row_number
+from pyspark.sql.functions import col, window, row_number, current_timestamp
 from pyspark.sql.window import Window
 import sys
 
@@ -39,16 +39,19 @@ def main():
             .filter("rn = 1") \
             .drop("rn")
         
+        # Add processing timestamp for lineage and SLA tracking
+        df_output = df_dedup.withColumn("processing_timestamp", current_timestamp())
+        
         # Data quality check
-        null_check = check_nulls(df_dedup, columns=["claim_id", "amount"], threshold=0.0)
+        null_check = check_nulls(df_output, columns=["claim_id", "amount"], threshold=0.0)
         if not null_check["passed"]:
             logger.error(f"Streaming data quality failed: {null_check['violations']}")
         
-        logger.info(f"Writing {df_dedup.count()} validated streaming records to Silver")
+        logger.info(f"Writing {df_output.count()} validated streaming records to Silver")
         
         # Write to Silver streaming table
         write_delta(
-            df=df_dedup,
+            df=df_output,
             path="Tables/silver_realtime_claims",
             mode="overwrite",
             partition_by=["ingestion_date"]

@@ -24,8 +24,9 @@ stages:
                   displayName: 'Use Python 3.9'
                 
                 - script: |
-                    pip install azure-identity requests pyyaml
-                  displayName: 'Install Azure SDK'
+                    pip install -r requirements.txt
+                    pip install pyyaml requests
+                  displayName: 'Install dependencies'
                 
                 - task: AzureKeyVault@2
                   inputs:
@@ -35,49 +36,20 @@ stages:
                   displayName: 'Fetch secrets from Key Vault'
                 
                 - script: |
-                    python -c "
-                    import requests
-                    import yaml
-                    import os
-                    
-                    # Load unified Fabric parameters
-                    with open('devops/parameters/fabric.yml') as f:
-                        params = yaml.safe_load(f)
-                    
-                    print('=' * 60)
-                    print('Deploying to Microsoft Fabric Workspace')
-                    print('=' * 60)
-                    print(f'Workspace: {params[\"workspace\"][\"name\"]}')
-                    print(f'Workspace ID: {params[\"workspace\"][\"id\"]}')
-                    print(f'Lakehouses: Bronze={params[\"lakehouses\"][\"bronze\"]}, Silver={params[\"lakehouses\"][\"silver\"]}, Gold={params[\"lakehouses\"][\"gold\"]}')
-                    print(f'KQL Database: {params[\"kql\"][\"database\"]}')
-                    print(f'Cosmos DB: {params[\"cosmos\"][\"database\"]}')
-                    print('=' * 60)
-                    
-                    # TODO: Actual Fabric API deployment logic
-                    # Use Fabric REST API to upload notebooks, pipelines, etc.
-                    print('✓ Notebooks deployed')
-                    print('✓ Pipelines deployed')
-                    print('✓ Configurations updated')
-                    print('Deployment completed successfully!')
-                    "
+                    python framework/scripts/deploy_to_fabric.py
                   displayName: 'Deploy to Fabric Workspace'
                   env:
-                    FABRIC_TOKEN: $(fabricToken)
-                    COSMOS_ENDPOINT: $(cosmosEndpoint)
-                    COSMOS_KEY: $(cosmosKey)
+                    FABRIC_TOKEN: $(fabric_token)
+                    COSMOS_ENDPOINT: $(cosmos_endpoint)
+                    COSMOS_KEY: $(cosmos_key)
                 
                 - script: |
-                    echo "Running post-deployment validation..."
-                    echo "✓ Checking lakehouse tables..."
-                    echo "✓ Validating KQL database..."
-                    echo "✓ Testing pipeline connectivity..."
-                    echo "Validation completed!"
+                    python framework/scripts/validate_deployment.py
                   displayName: 'Post-deployment validation'
                 
                 - script: |
-                    echo "Deployment summary:"
-                    echo "- Workspace: Insurance-ML-Platform"
-                    echo "- Components: Lakehouses (3), KQL DB (1), Pipelines (2)"
-                    echo "- Status: SUCCESS ✓"
+                  echo "Deployment summary:"
+                  echo "- Workspace: Insurance-ML-Platform"
+                  echo "- Components: Lakehouses (3), KQL DB (1), Pipelines (2)"
+                  echo "- Status: SUCCESS ✓"
                   displayName: 'Deployment summary'

@@ -129,9 +129,8 @@ Insurance-ML-Data-Platform/
 │   │   ├── logging_utils.py           # Logging & monitoring utilities
 │   │   └── alerting.py                # Data quality alerting service
 │   │
-│   ├── scripts/                       # Management Scripts (5 scripts)
+│   ├── scripts/                       # Management Scripts (4 scripts)
 │   │   ├── __init__.py                # Module exports
-│   │   ├── initialize_watermark_table.py  # Initialize watermark control table
 │   │   ├── delta_maintenance.py       # OPTIMIZE, ZORDER, VACUUM operations
 │   │   ├── validate_deployment.py     # Post-deployment validation (all layers)
 │   │   └── deploy_to_fabric.py        # Fabric REST API deployment automation
@@ -264,6 +263,8 @@ python -c "import yaml; print(yaml.safe_load(open('devops/parameters/fabric.yml'
    # Create Variable Group 'Fabric-Secrets':
    # - azureServiceConnection: <your-azure-service-connection>
    # - keyVaultName: kv-insurance-ml-platform
+   # Ensure Key Vault secrets exist with names:
+   #   fabric_token, cosmos_endpoint, cosmos_key
    # Link Variable Group to Key Vault
    ```
 
@@ -271,7 +272,9 @@ python -c "import yaml; print(yaml.safe_load(open('devops/parameters/fabric.yml'
    ```bash
    # Option A: Azure DevOps Pipeline
    git push origin main  # Triggers azure-pipelines-cd.yml
-   
+   # The CD pipeline runs:
+   #   - framework/scripts/deploy_to_fabric.py (deploy notebooks/pipelines via Fabric API)
+   #   - framework/scripts/validate_deployment.py (post-deployment checks)
    # Option B: Manual upload via Fabric Git integration
    # Configure Fabric Workspace → Git integration → Azure DevOps repo
    ```
@@ -330,6 +333,7 @@ All testing and validation are performed directly in Microsoft Fabric workspace 
 # Execute master_batch_pipeline in Fabric to test complete flow:
 # Bronze ingestion → Silver cleaning → Silver DQ checks → 
 # Silver Cosmos enrichment → Gold feature engineering
+# (Streaming Silver adds processing_timestamp to conform with contract)
 ```
 
 **3. Post-Deployment Validation:**
@@ -343,6 +347,8 @@ All testing and validation are performed directly in Microsoft Fabric workspace 
 ```bash
 # Delta Lake optimization (OPTIMIZE, ZORDER, VACUUM):
 # Execute: framework/scripts/delta_maintenance.py
+
+# Note: optimize() and vacuum() include fallbacks using Spark SQL when runtime APIs are unavailable.
 
 # Initialize control tables (watermark + DQ results):
 # Execute: framework/setup/init_control_tables.py
