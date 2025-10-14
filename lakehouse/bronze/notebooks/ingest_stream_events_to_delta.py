@@ -12,12 +12,17 @@ sys.path.append("/Workspace/framework/libs")
 sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
 from delta_ops import write_delta
 from logging_utils import get_logger
+from schema_contracts import load_contract, validate_contract
 
 # COMMAND ----------
 
 # Configuration
 EVENTSTREAM_PATH = "Tables/eventstream_raw"  # Eventstream output location
 BRONZE_DELTA_PATH = "Tables/bronze_realtime_events"
+SCHEMA_CONTRACT_PATHS = [
+    "/Workspace/framework/config/schema_contracts/bronze_realtime_events.yaml",
+    "framework/config/schema_contracts/bronze_realtime_events.yaml"
+]
 
 # COMMAND ----------
 
@@ -40,6 +45,25 @@ def main():
         .withColumn("ingestion_date", to_date(current_timestamp()))
     
     logger.info(f"Processing {df_enriched.count()} streaming events")
+    
+    # Validate schema against contract
+    contract = None
+    for contract_path in SCHEMA_CONTRACT_PATHS:
+        try:
+            contract = load_contract(contract_path)
+            logger.info(f"Loaded schema contract from {contract_path}")
+            break
+        except Exception:
+            continue
+    
+    if contract:
+        validation_result = validate_contract(df_enriched, contract, raise_on_failure=False)
+        if validation_result["passed"]:
+            logger.info("✓ Schema validation PASSED")
+        else:
+            logger.warning(f"✗ Schema validation FAILED: {validation_result}")
+    else:
+        logger.warning("Schema contract not found, skipping validation")
     
     # Append to Bronze Delta (immutable, append-only)
     write_delta(

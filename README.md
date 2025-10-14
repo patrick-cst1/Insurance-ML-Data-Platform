@@ -112,13 +112,11 @@ Insurance-ML-Data-Platform/
 ├── framework/                          # Reusable Framework
 │   ├── __init__.py                    # Framework package initialization
 │   │
-│   ├── config/                        # Configuration Files (18 YAML files)
-│   │   ├── schema_contracts/          # YAML schema definitions (15 tables)
+│   ├── config/                        # Configuration Files (16 YAML files)
+│   │   ├── schema_contracts/          # YAML schema definitions (15 tables, used in Bronze layer validation)
 │   │   │   ├── bronze_*.yaml          # Bronze layer schemas (5 files)
 │   │   │   ├── silver_*.yaml          # Silver layer schemas (6 files)
 │   │   │   └── gold_*.yaml            # Gold layer schemas (4 files)
-│   │   ├── cosmos.yaml                # Cosmos DB settings
-│   │   ├── eventstream.yaml           # Streaming config
 │   │   └── great_expectations_rules.yaml  # Great Expectations validation rules (6 tables)
 │   │
 │   ├── libs/                          # Core Libraries (10 modules)

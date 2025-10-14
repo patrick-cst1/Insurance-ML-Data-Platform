@@ -15,6 +15,7 @@ sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
 from delta_ops import write_delta
 from watermarking import get_current_watermark, update_watermark, get_incremental_filter
 from logging_utils import get_logger, PipelineTimer
+from schema_contracts import load_contract, validate_contract
 
 # COMMAND ----------
 
@@ -25,6 +26,10 @@ WATERMARK_TABLE_PATH = "Tables/watermark_control"
 SOURCE_NAME = "bronze_policies"
 WATERMARK_COLUMN = "last_modified_date"  # Assuming source has this column
 PARTITION_COLUMN = "ingestion_date"
+SCHEMA_CONTRACT_PATHS = [
+    "/Workspace/framework/config/schema_contracts/bronze_policies.yaml",
+    "framework/config/schema_contracts/bronze_policies.yaml"
+]
 
 # COMMAND ----------
 
@@ -74,6 +79,25 @@ def main():
             logger.info(f"Read {record_count} policies (incremental)")
             
             if record_count > 0:
+                # Validate schema against contract
+                contract = None
+                for contract_path in SCHEMA_CONTRACT_PATHS:
+                    try:
+                        contract = load_contract(contract_path)
+                        logger.info(f"Loaded schema contract from {contract_path}")
+                        break
+                    except Exception:
+                        continue
+                
+                if contract:
+                    validation_result = validate_contract(df_enriched, contract, raise_on_failure=False)
+                    if validation_result["passed"]:
+                        logger.info("✓ Schema validation PASSED")
+                    else:
+                        logger.warning(f"✗ Schema validation FAILED: {validation_result}")
+                else:
+                    logger.warning("Schema contract not found, skipping validation")
+                
                 # Write to Bronze Delta (append mode)
                 logger.info(f"Writing to {TARGET_PATH}")
                 write_delta(

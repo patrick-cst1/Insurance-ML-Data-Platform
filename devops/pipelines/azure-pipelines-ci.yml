@@ -35,8 +35,6 @@ jobs:
           print('Validating YAML configuration files...')
           
           config_files = [
-              'framework/config/cosmos.yaml',
-              'framework/config/eventstream.yaml',
               'framework/config/great_expectations_rules.yaml',
               'devops/parameters/fabric.yml'
           ]
