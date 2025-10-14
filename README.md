@@ -39,7 +39,7 @@ This repository provides a **reusable, production-grade data engineering framewo
 | **Dual-Sink Streaming** | Real-time events → KQL (low-latency) + Lakehouse (batch replay) | Eventstream, KQL Database |
 | **NoSQL Enrichment** | External risk scores & underwriting data integration | Azure Cosmos DB |
 | **Point-in-Time Join** | SCD Type 2 + feature timestamps for temporal consistency | Delta Lake, Spark SQL |
-| **Data Quality** | Schema contracts, null checks, duplicate detection, freshness SLA, Great Expectations | Great Expectations, Custom validators |
+| **Data Quality** | Schema contracts, null checks, duplicate detection, freshness SLA, Great Expectations | Great Expectations 0.18.x (SparkDFDataset), Custom validators |
 | **Data Governance** | Auto data catalog, lineage tracking, metadata management | Microsoft Purview Hub (native) |
 | **CI/CD Pipeline** | Automated deployment with approval gates & rollback | Azure DevOps, Fabric API |
 | **Monitoring** | Real-time lag, data quality scores, pipeline metrics | KQL, Monitoring Hub, Custom Dashboards |
@@ -445,6 +445,7 @@ from framework.libs.great_expectations_validator import validate_with_great_expe
 
 # Used in: dq_checks_with_great_expectations.py for deep validation
 # Config: framework/config/great_expectations_rules.yaml
+# Implementation: Uses SparkDFDataset for Fabric compatibility (GE 0.18.x)
 # Purpose: Statistical profiling, regex patterns, advanced constraints
 
 # Define expectations
@@ -461,13 +462,13 @@ expectations = [
         "mostly": 0.99  # Allow 1% outliers
     },
     {
-        "expectation_type": "expect_column_values_to_match_regex",
-        "column": "email",
-        "regex": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+        "expectation_type": "expect_column_values_to_be_in_set",
+        "column": "status",
+        "value_set": ["ACTIVE", "INACTIVE", "EXPIRED"]
     }
 ]
 
-# Run validation
+# Run validation (uses SparkDFDataset internally)
 results = validate_with_great_expectations(
     df=df_policies,
     table_name="silver_policies",
@@ -623,10 +624,11 @@ This platform implements a **production-ready medallion architecture** with the 
    
    **System 2: Great Expectations (`great_expectations_validator.py`)**
    - **Purpose**: Advanced statistical validation gate for Silver and Gold layers
+   - **Implementation**: Uses `SparkDFDataset` for Azure Fabric compatibility (GE 0.18.x)
    - **Config**: `framework/config/great_expectations_rules.yaml` (151 lines, 9 tables: silver_policies, silver_claims, silver_customers, silver_agents, silver_policies_enriched, silver_realtime_claims, gold_claims_features, gold_customer_features, gold_risk_features)
    - **Used by**: `dq_checks_with_great_expectations.py` (optional deep validation)
    - **Output**: `Tables/dq_check_results_ge`
-   - **Advanced Features**: Regex patterns, date formats, statistical profiling, mostly parameter, strftime validation
+   - **Advanced Features**: Range validation, set membership, statistical profiling, mostly parameter, strftime validation
    
 4. **Point-in-Time Correctness**
    - SCD Type 2 dimensions for historical tracking

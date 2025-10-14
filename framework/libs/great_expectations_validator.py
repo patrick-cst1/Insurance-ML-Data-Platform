@@ -1,57 +1,49 @@
 """
 Great Expectations Integration for Data Quality Validation
 Provides advanced validation capabilities using Great Expectations framework
+Compatible with Great Expectations 0.18.x
 """
 
 from pyspark.sql import DataFrame
 import great_expectations as gx
-from great_expectations.core.batch import RuntimeBatchRequest
-from great_expectations.data_context import BaseDataContext
-from great_expectations.data_context.types.base import DataContextConfig, InMemoryStoreBackendDefaults
-from typing import Dict, List, Optional
+from great_expectations.dataset import SparkDFDataset
+from typing import Dict, List, Optional, Any
 import logging
 
 
 class GreatExpectationsValidator:
     """
     Wrapper for Great Expectations validation in Fabric environment.
+    Uses SparkDFDataset for compatibility with Azure Fabric.
     """
     
     def __init__(self, context_root_dir: Optional[str] = None):
         """
-        Initialize Great Expectations context.
+        Initialize Great Expectations validator.
         
         Args:
             context_root_dir: Root directory for GE context (None for in-memory)
         """
         self.logger = logging.getLogger(__name__)
-        
-        if context_root_dir:
-            self.context = gx.get_context(context_root_dir=context_root_dir)
-        else:
-            # Use in-memory context for Fabric environment
-            self.context = self._create_in_memory_context()
+        # Store expectations for validation
+        self.expectations = {}
     
-    def _create_in_memory_context(self) -> BaseDataContext:
-        """Create in-memory Great Expectations context."""
-        data_context_config = DataContextConfig(
-            store_backend_defaults=InMemoryStoreBackendDefaults()
-        )
-        return BaseDataContext(project_config=data_context_config)
+    def _create_in_memory_context(self):
+        """Create in-memory Great Expectations context - not used in SparkDFDataset mode."""
+        pass
     
     def create_expectation_suite(self, suite_name: str) -> None:
         """
-        Create or retrieve expectation suite.
+        Create expectation suite.
         
         Args:
             suite_name: Name of the expectation suite
         """
-        try:
-            self.context.get_expectation_suite(expectation_suite_name=suite_name)
-            self.logger.info(f"Expectation suite '{suite_name}' already exists")
-        except:
-            self.context.add_expectation_suite(expectation_suite_name=suite_name)
+        if suite_name not in self.expectations:
+            self.expectations[suite_name] = []
             self.logger.info(f"Created expectation suite '{suite_name}'")
+        else:
+            self.logger.info(f"Expectation suite '{suite_name}' already exists")
     
     def add_expectations_from_config(
         self,
@@ -65,18 +57,10 @@ class GreatExpectationsValidator:
             suite_name: Name of the expectation suite
             expectations_config: List of expectation configurations
         """
-        suite = self.context.get_expectation_suite(expectation_suite_name=suite_name)
+        if suite_name not in self.expectations:
+            self.expectations[suite_name] = []
         
-        for exp_config in expectations_config:
-            expectation_type = exp_config.pop("expectation_type")
-            suite.add_expectation(
-                expectation_configuration={
-                    "expectation_type": expectation_type,
-                    "kwargs": exp_config
-                }
-            )
-        
-        self.context.save_expectation_suite(expectation_suite=suite)
+        self.expectations[suite_name].extend(expectations_config)
         self.logger.info(f"Added {len(expectations_config)} expectations to '{suite_name}'")
     
     def validate_dataframe(
@@ -86,7 +70,7 @@ class GreatExpectationsValidator:
         batch_identifier: str = "default_batch"
     ) -> Dict:
         """
-        Validate DataFrame against expectation suite.
+        Validate DataFrame against expectation suite using SparkDFDataset.
         
         Args:
             df: PySpark DataFrame to validate
@@ -96,61 +80,86 @@ class GreatExpectationsValidator:
         Returns:
             Validation results dictionary
         """
-        # Create datasource for PySpark DataFrame
-        datasource_config = {
-            "name": "spark_datasource",
-            "class_name": "Datasource",
-            "execution_engine": {
-                "class_name": "SparkDFExecutionEngine"
-            },
-            "data_connectors": {
-                "runtime_connector": {
-                    "class_name": "RuntimeDataConnector",
-                    "batch_identifiers": ["batch_id"]
-                }
+        # Get expectations for this suite
+        expectations_config = self.expectations.get(suite_name, [])
+        
+        if not expectations_config:
+            self.logger.warning(f"No expectations found for suite '{suite_name}'")
+            return {
+                "success": True,
+                "statistics": {
+                    "evaluated_expectations": 0,
+                    "successful_expectations": 0,
+                    "unsuccessful_expectations": 0,
+                    "success_percent": 100.0
+                },
+                "results": []
             }
-        }
         
-        try:
-            self.context.add_datasource(**datasource_config)
-        except:
-            pass  # Datasource already exists
+        # Create SparkDFDataset for validation
+        ge_df = SparkDFDataset(df)
         
-        # Create batch request
-        batch_request = RuntimeBatchRequest(
-            datasource_name="spark_datasource",
-            data_connector_name="runtime_connector",
-            data_asset_name=batch_identifier,
-            batch_identifiers={"batch_id": batch_identifier},
-            runtime_parameters={"batch_data": df}
-        )
+        # Run each expectation and collect results
+        results = []
+        successful = 0
+        evaluated = 0
         
-        # Create validator
-        validator = self.context.get_validator(
-            batch_request=batch_request,
-            expectation_suite_name=suite_name
-        )
+        for exp_config in expectations_config:
+            expectation_type = exp_config.get("expectation_type")
+            kwargs = {k: v for k, v in exp_config.items() if k != "expectation_type"}
+            
+            try:
+                # Get the expectation method
+                expectation_method = getattr(ge_df, expectation_type, None)
+                
+                if expectation_method:
+                    result = expectation_method(**kwargs)
+                    evaluated += 1
+                    
+                    if result.get("success", False):
+                        successful += 1
+                    
+                    results.append({
+                        "expectation_type": expectation_type,
+                        "success": result.get("success", False),
+                        "result": result
+                    })
+                else:
+                    self.logger.warning(f"Unknown expectation type: {expectation_type}")
+                    results.append({
+                        "expectation_type": expectation_type,
+                        "success": False,
+                        "result": {"error": f"Unknown expectation type: {expectation_type}"}
+                    })
+                    evaluated += 1
+                    
+            except Exception as e:
+                self.logger.error(f"Error executing {expectation_type}: {str(e)}")
+                results.append({
+                    "expectation_type": expectation_type,
+                    "success": False,
+                    "result": {"error": str(e)}
+                })
+                evaluated += 1
         
-        # Run validation
-        validation_results = validator.validate()
+        # Calculate statistics
+        success_rate = (successful / evaluated * 100.0) if evaluated > 0 else 0.0
+        all_passed = (successful == evaluated)
         
-        # Extract results
         results_dict = {
-            "success": validation_results.success,
-            "statistics": validation_results.statistics,
-            "results": []
+            "success": all_passed,
+            "statistics": {
+                "evaluated_expectations": evaluated,
+                "successful_expectations": successful,
+                "unsuccessful_expectations": evaluated - successful,
+                "success_percent": success_rate
+            },
+            "results": results
         }
-        
-        for result in validation_results.results:
-            results_dict["results"].append({
-                "expectation_type": result.expectation_config.expectation_type,
-                "success": result.success,
-                "result": result.result
-            })
         
         self.logger.info(
-            f"Validation {'PASSED' if validation_results.success else 'FAILED'}: "
-            f"{validation_results.statistics['successful_expectations']}/{validation_results.statistics['evaluated_expectations']} checks passed"
+            f"Validation {'PASSED' if all_passed else 'FAILED'}: "
+            f"{successful}/{evaluated} checks passed ({success_rate:.1f}%)"
         )
         
         return results_dict
