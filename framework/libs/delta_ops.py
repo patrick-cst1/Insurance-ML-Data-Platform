@@ -136,7 +136,7 @@ def optimize_delta(
     
     # Run OPTIMIZE with fallback for OSS Delta
     try:
-        optimize_builder = delta_table.optimize()  # Fabric/Databricks API
+        optimize_builder = delta_table.optimize()  # Fabric API
         if zorder_by:
             optimize_builder = optimize_builder.executeZOrderBy(zorder_by)
         else:

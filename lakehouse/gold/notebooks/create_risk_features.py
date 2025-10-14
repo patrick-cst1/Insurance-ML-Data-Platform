@@ -2,7 +2,7 @@
 """Gold Layer: Create risk assessment features"""
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, when, coalesce
+from pyspark.sql.functions import col, when, coalesce, lit
 import sys
 import os
 
@@ -22,7 +22,7 @@ def main():
     with PipelineTimer(logger, "create_risk_features"):
         
         # Read enriched policies (with Cosmos risk scores) and claims features
-        df_policies = read_delta(spark, "Tables/silver_policies_enriched").filter(col("is_current") == True)
+        df_policies = read_delta(spark, "Tables/silver_policies_enriched").filter(col("is_current") == lit(True))
         df_claims_features = read_delta(spark, "Tables/gold_claims_features")
         
         # Join claims features with policies

@@ -4,7 +4,7 @@ Gold Layer: Create customer dimension features
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, count, sum as spark_sum, avg, datediff, current_date, when
+from pyspark.sql.functions import col, count, sum as spark_sum, avg, datediff, current_date, when, lit
 import sys
 import os
 
@@ -24,8 +24,8 @@ def main():
     with PipelineTimer(logger, "create_customer_features"):
         
         # Read Silver tables
-        df_customers = read_delta(spark, "Tables/silver_customers").filter(col("is_current") == True)
-        df_policies = read_delta(spark, "Tables/silver_policies").filter(col("is_current") == True)
+        df_customers = read_delta(spark, "Tables/silver_customers").filter(col("is_current") == lit(True))
+        df_policies = read_delta(spark, "Tables/silver_policies").filter(col("is_current") == lit(True))
         
         logger.info(f"Read {df_customers.count()} customers and {df_policies.count()} policies")
         
