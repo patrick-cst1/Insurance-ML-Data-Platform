@@ -64,7 +64,7 @@ graph LR
     style D fill:#FFD700
     style G fill:#4B0082
     style F fill:#20B2AA
-
+```
 
 ### Data Flow Sequence
 
@@ -365,8 +365,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 👥 Author
 
-**Data Engineering Team**  
-Built with ❤️ for production ML workflows on Microsoft Fabric
+**Patrick Cheung**  
+Built for production ML workflows on Microsoft Fabric
 
 For questions, issues, or contributions, please open a GitHub issue or contact the maintainers.
 
