@@ -175,14 +175,28 @@ def deploy_pipelines(deployer: FabricDeployer, pipeline_dir: str):
         for act in activities:
             act_type = act.get("type")
             if act_type == "DatabricksNotebook":
-                # Convert to Fabric Notebook activity
+                # Convert legacy Databricks pipeline definitions to Fabric Notebook (migration support)
                 type_props = act.get("typeProperties", {})
                 nb_path = type_props.get("notebookPath", "")
                 # Derive display name from path (file stem)
                 # Examples: "/lakehouse/silver/notebooks/clean_policies" -> "clean_policies"
                 nb_name = nb_path.strip("/").split("/")[-1] if nb_path else act.get("name", "notebook")
                 act["type"] = "Notebook"
-                act["typeProperties"] = {"notebookName": nb_name}
+                new_props = {"notebookName": nb_name}
+                # Preserve baseParameters if provided
+                if "baseParameters" in type_props:
+                    new_props["baseParameters"] = type_props["baseParameters"]
+                act["typeProperties"] = new_props
+            elif act_type == "Notebook":
+                # Normalize existing Fabric Notebook activities that use notebookPath -> notebookName
+                type_props = act.get("typeProperties", {})
+                nb_path = type_props.get("notebookPath")
+                if nb_path and "notebookName" not in type_props:
+                    nb_name = nb_path.strip("/").split("/")[-1]
+                    new_props = {"notebookName": nb_name}
+                    if "baseParameters" in type_props:
+                        new_props["baseParameters"] = type_props["baseParameters"]
+                    act["typeProperties"] = new_props
 
         display_name = pipeline_def.get("name", pipeline_file.stem)
         deployer.create_pipeline(pipeline_def, display_name)

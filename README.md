@@ -12,9 +12,9 @@
 **Production-Ready Medallion Architecture for ML Workflows on Microsoft Fabric**
 
 [Features](#-key-features) •
-[Architecture](#-architecture) •
+[Architecture](#%EF%B8%8F-architecture) •
 [Quick Start](#-quick-start) •
-[Documentation](#-documentation)
+[Project Structure](#-project-structure)
 
 </div>
 
@@ -141,14 +141,13 @@ Insurance-ML-Data-Platform/
 │       ├── __init__.py                # Module exports
 │       └── init_control_tables.py     # Initialize watermark & DQ results tables
 │
-├── lakehouse/                         # Medallion Notebooks (18 notebooks total)
-│   ├── bronze/notebooks/              # Raw data ingestion (6 notebooks)
+├── lakehouse/                         # Medallion Notebooks (17 notebooks total)
+│   ├── bronze/notebooks/              # Raw data ingestion (5 notebooks)
 │   │   ├── ingest_policies.py                 # Full load policies ingestion
 │   │   ├── ingest_policies_incremental.py     # Incremental policies with watermarking
 │   │   ├── ingest_claims.py                   # Claims ingestion
 │   │   ├── ingest_customers.py                # Customers ingestion
-│   │   ├── ingest_agents.py                   # Agents ingestion
-│   │   └── ingest_stream_events_to_delta.py   # Eventstream → Bronze Delta
+│   │   └── ingest_agents.py                   # Agents ingestion
 │   │
 │   ├── silver/notebooks/              # Data cleansing & enrichment (8 notebooks)
 │   │   ├── clean_policies.py                  # Clean + SCD Type 2 for policies
@@ -624,7 +623,7 @@ This platform implements a **production-ready medallion architecture** with the 
    
    **System 2: Great Expectations (`great_expectations_validator.py`)**
    - **Purpose**: Advanced statistical validation gate for Silver and Gold layers
-   - **Config**: `framework/config/great_expectations_rules.yaml` (151 lines, 8 tables: silver_policies, silver_claims, silver_customers, silver_agents, silver_policies_enriched, silver_realtime_claims, gold_claims_features, gold_customer_features, gold_risk_features)
+   - **Config**: `framework/config/great_expectations_rules.yaml` (151 lines, 9 tables: silver_policies, silver_claims, silver_customers, silver_agents, silver_policies_enriched, silver_realtime_claims, gold_claims_features, gold_customer_features, gold_risk_features)
    - **Used by**: `dq_checks_with_great_expectations.py` (optional deep validation)
    - **Output**: `Tables/dq_check_results_ge`
    - **Advanced Features**: Regex patterns, date formats, statistical profiling, mostly parameter, strftime validation
@@ -638,13 +637,6 @@ This platform implements a **production-ready medallion architecture** with the 
    - **CI Pipeline**: Configuration validation, syntax checks (azure-pipelines-ci.yml)
    - **CD Pipeline**: Automated deployment to Fabric workspace (azure-pipelines-cd.yml)
    - **Post-Deployment Validation**: Automated validation of all layers and control tables
-
-## 🤝 Contributing & Extension
-
-- **Add New Data Source**: Copy `lakehouse/bronze/notebooks/ingest_*.py` template
-- **Custom Features**: Extend `lakehouse/gold/notebooks/create_*_features.py`
-- **New Schema Contracts**: Add YAML definitions to `framework/config/`
-- **Framework Enhancement**: Extend `framework/libs/` modules
 
 ## 📝 License
 

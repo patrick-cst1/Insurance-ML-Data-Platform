@@ -56,7 +56,6 @@ deployment:
     silver: Tables/silver_*
     gold: Tables/gold_*
   notebook_paths:
-    - framework/libs/
     - lakehouse/bronze/notebooks/
     - lakehouse/silver/notebooks/
     - lakehouse/gold/notebooks/

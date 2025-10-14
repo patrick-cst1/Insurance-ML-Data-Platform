@@ -136,7 +136,7 @@ def optimize_delta(
     
     # Run OPTIMIZE with fallback for OSS Delta
     try:
-        optimize_builder = delta_table.optimize()  # Databricks API
+        optimize_builder = delta_table.optimize()  # Fabric/Databricks API
         if zorder_by:
             optimize_builder = optimize_builder.executeZOrderBy(zorder_by)
         else:
@@ -150,7 +150,7 @@ def optimize_delta(
             else:
                 spark.sql(f"OPTIMIZE delta.`{path}`")
         except Exception:
-            # Fabric runtimes may not support OPTIMIZE at all; proceed without compaction
+            # Some Fabric runtimes may not support OPTIMIZE; proceed without compaction
             pass
     
     # Run VACUUM (optional) with fallback
