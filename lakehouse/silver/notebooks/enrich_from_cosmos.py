@@ -8,22 +8,18 @@ import sys
 import os
 
 sys.path.append("/Workspace/framework/libs")
+sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
 from delta_ops import read_delta, write_delta
 from cosmos_io import enrich_dataframe
 from logging_utils import get_logger, PipelineTimer
 
 # COMMAND ----------
 
-# Parameters (should come from Key Vault in production)
-dbutils.widgets.text("cosmos_endpoint", "")
-dbutils.widgets.text("cosmos_key", "")
-dbutils.widgets.text("cosmos_database", "insurance")
-dbutils.widgets.text("cosmos_container", "policy-enrichment")
-
-COSMOS_ENDPOINT = dbutils.widgets.get("cosmos_endpoint")
-COSMOS_KEY = dbutils.widgets.get("cosmos_key")
-COSMOS_DATABASE = dbutils.widgets.get("cosmos_database")
-COSMOS_CONTAINER = dbutils.widgets.get("cosmos_container")
+# Parameters (read from environment variables or Fabric parameters)
+COSMOS_ENDPOINT = os.environ.get("COSMOS_ENDPOINT", "")
+COSMOS_KEY = os.environ.get("COSMOS_KEY", "")
+COSMOS_DATABASE = os.environ.get("COSMOS_DATABASE", "insurance")
+COSMOS_CONTAINER = os.environ.get("COSMOS_CONTAINER", "policy-enrichment")
 
 SILVER_POLICIES_PATH = "Tables/silver_policies"
 ENRICHED_OUTPUT_PATH = "Tables/silver_policies_enriched"

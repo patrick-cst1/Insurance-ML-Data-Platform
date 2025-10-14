@@ -1,5 +1,6 @@
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, count, isnan, when, max as spark_max, current_timestamp, datediff
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 import logging
 
@@ -134,7 +135,7 @@ def check_freshness(
         Check result dict (passed, latest_timestamp, age_hours)
     """
     latest_ts = df.select(spark_max(col(timestamp_column)).alias("max_ts")).first()["max_ts"]
-    
+
     if latest_ts is None:
         return {
             "passed": False,
@@ -142,17 +143,21 @@ def check_freshness(
             "age_hours": None,
             "error": "No data or null timestamp"
         }
-    
-    # Calculate age in days (adjust based on environment)
-    age_check_df = df.selectExpr(
-        f"datediff(current_timestamp(), {timestamp_column}) as age_days"
-    ).select(spark_max("age_days").alias("max_age_days"))
-    
-    max_age_days = age_check_df.first()["max_age_days"]
-    age_hours = max_age_days * 24 if max_age_days else 0
-    
+
+    # Calculate age based on latest timestamp
+    try:
+        now_utc = datetime.now(timezone.utc)
+        # latest_ts is a Python datetime (timezone-aware in most Spark configs)
+        age_seconds = (now_utc - latest_ts.replace(tzinfo=timezone.utc)).total_seconds()
+        age_hours = age_seconds / 3600.0
+    except Exception:
+        # Fallback using Spark SQL if timezone handling differs
+        age_hours = df.selectExpr(
+            f"(unix_timestamp(current_timestamp()) - unix_timestamp(max({timestamp_column}))) / 3600.0 as age_hours"
+        ).first()["age_hours"]
+
     passed = age_hours <= max_age_hours
-    
+
     return {
         "passed": passed,
         "latest_timestamp": str(latest_ts),

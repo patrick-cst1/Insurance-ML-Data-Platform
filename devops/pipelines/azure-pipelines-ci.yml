@@ -11,10 +11,41 @@ pr:
       - develop
 
 jobs:
-  - job: ci
-    displayName: CI Validation
+  - job: validate
+    displayName: Validate Code & Config
     pool:
       vmImage: ubuntu-latest
     steps:
-      - script: echo "Run lint, unit tests, config validation"
-        displayName: Placeholder validation
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '3.9'
+        displayName: 'Use Python 3.9'
+      
+      - script: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 pytest black
+        displayName: 'Install dependencies'
+      
+      - script: |
+          flake8 framework/ lakehouse/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 framework/ lakehouse/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        displayName: 'Lint code with flake8'
+      
+      - script: |
+          black --check framework/ lakehouse/
+        displayName: 'Check code formatting'
+      
+      - script: |
+          pytest tests/unit/ -v --junitxml=junit/test-results.xml
+        displayName: 'Run unit tests'
+      
+      - task: PublishTestResults@2
+        inputs:
+          testResultsFiles: '**/test-results.xml'
+          testRunTitle: 'Python Unit Tests'
+        condition: succeededOrFailed()
+      
+      - script: |
+          python -c "import yaml; [yaml.safe_load(open(f)) for f in ['framework/config/medallion.yaml', 'framework/config/cosmos.yaml', 'framework/config/eventstream.yaml']]"
+        displayName: 'Validate YAML configs'

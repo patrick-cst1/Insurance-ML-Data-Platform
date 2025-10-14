@@ -152,22 +152,18 @@ Insurance-ML-Data-Platform/
 │       └── aggregations/              # Materialized views
 │
 ├── pipelines/                         # Orchestration
-│   ├── bronze/                        # Bronze pipelines
-│   ├── silver/                        # Silver pipelines
-│   ├── gold/                          # Gold pipelines
+│   ├── gold/
+│   │   └── gold_realtime_aggregation.json # Streaming feature aggregation
 │   └── orchestration/
-│       ├── master_batch_pipeline.json # Master batch orchestration
-│       └── master_streaming_pipeline.json
+│       └── master_batch_pipeline.json     # Master batch orchestration
 │
 ├── devops/                            # CI/CD
 │   ├── pipelines/
 │   │   ├── azure-pipelines-ci.yml     # Continuous integration
-│   │   ├── azure-pipelines-cd-dev.yml # Dev deployment
-│   │   └── azure-pipelines-cd-prod.yml # Prod deployment
+│   │   └── azure-pipelines-cd.yml     # Unified deployment
 │   │
-│   └── parameters/                    # Environment parameters
-│       ├── dev.yml
-│       └── prod.yml
+│   └── parameters/
+│       └── fabric.yml                 # Fabric workspace configuration
 │
 ├── tests/                             # Testing
 │   ├── unit/                          # Unit tests
@@ -177,11 +173,6 @@ Insurance-ML-Data-Platform/
 │   ├── batch/                         # CSV files
 │   ├── streaming/                     # JSON events
 │   └── nosql/                         # Cosmos enrichment data
-│
-├── docs/                              # Documentation
-│   ├── architecture.md                # Architecture deep-dive
-│   ├── deployment-guide.md            # Deployment instructions
-│   └── data-dictionary.md             # Data catalog
 │
 ├── requirements.txt                   # Python dependencies
 └── README.md                          # This file
@@ -213,45 +204,60 @@ python -c "import yaml; print(yaml.safe_load(open('framework/config/medallion.ya
 
 ### Deployment Steps
 
-1. **Provision Azure Resources**
+1. **Provision Microsoft Fabric Workspace**
    ```bash
-   # Create Fabric Workspaces (Dev/Test/Prod)
-   # - Workspace: Insurance-Dev, Insurance-Test, Insurance-Prod
-   # - Lakehouses: lh_bronze, lh_silver, lh_gold (per workspace)
+   # Create single Fabric Workspace: Insurance-ML-Platform
+   # - Lakehouses: lh_bronze, lh_silver, lh_gold
    # - Eventstream: es_insurance_realtime
    # - KQL Database: kql_insurance_realtime
+   # Update workspace ID in devops/parameters/fabric.yml
    ```
 
 2. **Configure Cosmos DB**
    ```bash
+   # Create Cosmos DB account (NoSQL API)
    # Create containers: policy-enrichment, customer-risk-profiles
    # Import sample data from samples/nosql/
    ```
 
 3. **Setup Azure Key Vault**
    ```bash
+   # Create Key Vault: kv-insurance-ml-platform
    # Store secrets:
-   # - Cosmos connection string
-   # - Eventstream endpoints
-   # - Service principal credentials
+   # - cosmosEndpoint, cosmosKey
+   # - fabricToken (service principal)
+   # Grant access to Azure DevOps service connection
    ```
 
-4. **Deploy Code to Fabric**
+4. **Configure Azure DevOps**
    ```bash
-   # Upload framework/ and lakehouse/ to Fabric Workspace
-   # Configure Fabric Git integration (Azure DevOps recommended)
+   # Import pipelines:
+   # - devops/pipelines/azure-pipelines-ci.yml (PR validation)
+   # - devops/pipelines/azure-pipelines-cd.yml (deployment)
+   # 
+   # Create Variable Group 'Fabric-Secrets':
+   # - azureServiceConnection: <your-azure-service-connection>
+   # - keyVaultName: kv-insurance-ml-platform
+   # Link Variable Group to Key Vault
    ```
 
-5. **Run Master Pipeline**
+5. **Deploy Code to Fabric**
    ```bash
-   # Trigger master_batch_pipeline to validate end-to-end flow
-   # Monitor execution in Fabric Monitoring Hub
+   # Option A: Azure DevOps Pipeline
+   git push origin main  # Triggers azure-pipelines-cd.yml
+   
+   # Option B: Manual upload via Fabric Git integration
+   # Configure Fabric Workspace → Git integration → Azure DevOps repo
    ```
 
-6. **Configure CI/CD**
-   - Import `devops/pipelines/*.yml` to Azure DevOps
-   - Configure Variable Groups with Key Vault integration
-   - Setup Fabric Deployment Pipelines (Dev → Test → Prod)
+6. **Validate Deployment**
+   ```bash
+   # In Fabric Workspace:
+   # 1. Open master_batch_pipeline → Run
+   # 2. Check Tables: bronze_*, silver_*, gold_*
+   # 3. Query KQL Database for streaming events
+   # 4. View monitoring dashboards
+   ```
 
 ### Local Development
 
@@ -344,13 +350,14 @@ pit_features = generate_point_in_time_view(
 )
 ```
 
-## 📖 Documentation
+## 📖 Architecture & Deployment
 
-| Document | Description |
-|----------|-------------|
-| [Architecture Deep-Dive](docs/architecture.md) | Medallion design, dual-sink pattern, CI/CD flow |
-| [Deployment Guide](docs/deployment-guide.md) | Step-by-step deployment instructions |
-| [Data Dictionary](docs/data-dictionary.md) | Complete data catalog with schemas and refresh frequencies |
+All architecture documentation and deployment instructions are contained in this README. Key concepts:
+
+- **Medallion Architecture**: Bronze (raw) → Silver (curated with SCD2) → Gold (ML features)
+- **Dual-Sink Pattern**: Eventstream → KQL Database (real-time) + Lakehouse (batch replay)
+- **Point-in-Time Correctness**: SCD Type 2 + feature timestamps for ML training/inference consistency
+- **Deployment**: Single unified environment via `devops/pipelines/azure-pipelines-cd.yml`
 
 ## 🤝 Contributing & Extension
 

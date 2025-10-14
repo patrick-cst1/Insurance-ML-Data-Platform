@@ -28,10 +28,4 @@
 ']'
 
 // Set retention policy (30 days)
-.alter table customer_interactions policy retention 
-```
-{
-  "SoftDeletePeriod": "30.00:00:00",
-  "Recoverability": "Enabled"
-}
-```
+.alter-merge table customer_interactions policy retention softdelete = 30d

@@ -22,24 +22,7 @@
 ']'
 
 // Set retention policy (30 days for real-time events)
-.alter table realtime_claims_events policy retention 
-```
-{
-  "SoftDeletePeriod": "30.00:00:00",
-  "Recoverability": "Enabled"
-}
-```
+.alter-merge table realtime_claims_events policy retention softdelete = 30d
 
 // Create update policy to auto-populate ingestion_time if not provided
-.alter table realtime_claims_events policy update
-```
-[
-  {
-    "IsEnabled": true,
-    "Source": "realtime_claims_events",
-    "Query": "realtime_claims_events | extend ingestion_time = coalesce(ingestion_time, now())",
-    "IsTransactional": false,
-    "PropagateIngestionProperties": false
-  }
-]
-```
+.alter table realtime_claims_events policy update '[{"IsEnabled":true,"Source":"realtime_claims_events","Query":"realtime_claims_events | extend ingestion_time = coalesce(ingestion_time, now())","IsTransactional":false,"PropagateIngestionProperties":false}]'

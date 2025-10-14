@@ -1,8 +1,0 @@
-workspaces:
-  bronze: dev-workspace-bronze-id
-  silver: dev-workspace-silver-id
-  gold: dev-workspace-gold-id
-cosmos:
-  connection_string_secret: kv-dev-cosmos-conn
-kql:
-  database: kql_insurance_realtime_dev

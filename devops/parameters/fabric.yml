@@ -1,0 +1,46 @@
+# Unified Fabric Workspace Configuration
+# Single environment for development and production
+
+workspace:
+  name: Insurance-ML-Platform
+  id: fabric-workspace-insurance-id  # Replace with actual workspace ID
+  
+lakehouses:
+  bronze: lh_bronze
+  silver: lh_silver
+  gold: lh_gold
+
+cosmos:
+  connection_string_secret: kv-cosmos-connection-string
+  database: insurance
+  containers:
+    policy_enrichment: policy-enrichment
+    customer_risk: customer-risk-profiles
+
+kql:
+  database: kql_insurance_realtime
+
+eventstream:
+  name: es_insurance_realtime
+  
+fabric_capacity:
+  name: Fabric-Capacity-F64  # Adjust based on your capacity
+  region: East US
+
+key_vault:
+  name: kv-insurance-ml-platform
+  secrets:
+    - cosmos_endpoint
+    - cosmos_key
+    - fabric_token
+
+deployment:
+  lakehouse_paths:
+    bronze: Tables/bronze_*
+    silver: Tables/silver_*
+    gold: Tables/gold_*
+  notebook_paths:
+    - framework/libs/
+    - lakehouse/bronze/notebooks/
+    - lakehouse/silver/notebooks/
+    - lakehouse/gold/notebooks/
