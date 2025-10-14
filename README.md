@@ -39,7 +39,7 @@ This repository provides a **reusable, production-grade data engineering framewo
 | **Dual-Sink Streaming** | Real-time events → KQL (low-latency) + Lakehouse (batch replay) | Eventstream, KQL Database |
 | **NoSQL Enrichment** | External risk scores & underwriting data integration | Azure Cosmos DB |
 | **Point-in-Time Join** | SCD Type 2 + feature timestamps for temporal consistency | Delta Lake, Spark SQL |
-| **Data Quality** | Schema contracts, null checks, duplicate detection, freshness SLA | Great Expectations, Custom |
+| **Data Quality** | Schema contracts, null checks, duplicate detection, freshness SLA, Great Expectations | Great Expectations, Custom validators |
 | **CI/CD Pipeline** | Automated deployment with approval gates & rollback | Azure DevOps, Fabric API |
 | **Monitoring** | Real-time lag, data quality scores, pipeline metrics | KQL, Monitoring Hub |
 
@@ -109,17 +109,32 @@ Insurance-ML-Data-Platform/
 │
 ├── framework/                          # Reusable Framework
 │   ├── config/                        # Configuration Files
+│   │   ├── schema_contracts/          # YAML schema definitions (15 files)
 │   │   ├── cosmos.yaml                # Cosmos DB settings
-│   │   └── eventstream.yaml           # Streaming config
+│   │   ├── eventstream.yaml           # Streaming config
+│   │   ├── great_expectations_rules.yaml  # Great Expectations validation rules
+│   │   ├── schema_bronze.yaml         # Bronze layer schema
+│   │   ├── schema_silver.yaml         # Silver layer schema
+│   │   └── schema_gold.yaml           # Gold layer schema
 │   │
-│   └── libs/                          # Core Libraries
-│       ├── delta_ops.py               # Delta Lake operations
-│       ├── data_quality.py            # DQ validation functions
-│       ├── cosmos_io.py               # Cosmos DB connector
-│       ├── schema_contracts.py        # Schema validation
-│       ├── watermarking.py            # Incremental processing
-│       ├── feature_utils.py           # Feature engineering
-│       └── logging_utils.py           # Logging & monitoring
+│   ├── libs/                          # Core Libraries
+│   │   ├── delta_ops.py               # Delta Lake operations
+│   │   ├── data_quality.py            # DQ validation functions
+│   │   ├── great_expectations_validator.py  # Great Expectations integration
+│   │   ├── cosmos_io.py               # Cosmos DB connector
+│   │   ├── schema_contracts.py        # Schema validation
+│   │   ├── watermarking.py            # Incremental processing
+│   │   ├── feature_utils.py           # Feature engineering
+│   │   └── logging_utils.py           # Logging & monitoring
+│   │
+│   ├── scripts/                       # Management Scripts
+│   │   ├── initialize_watermark_table.py  # Initialize watermark control
+│   │   ├── delta_maintenance.py       # OPTIMIZE, ZORDER, VACUUM
+│   │   ├── validate_deployment.py     # Post-deployment validation
+│   │   └── deploy_to_fabric.py        # Fabric REST API deployment
+│   │
+│   └── setup/                         # Initialization Scripts
+│       └── init_control_tables.py     # Initialize control tables
 │
 ├── lakehouse/                         # Medallion Notebooks
 │   ├── bronze/notebooks/              # Raw data ingestion (to be created in Fabric)
@@ -148,16 +163,18 @@ Insurance-ML-Data-Platform/
 │   └── parameters/
 │       └── fabric.yml                 # Unified Fabric workspace configuration
 │
-├── tests/                             # Testing
-│   ├── unit/                          # Unit tests
-│   └── integration/                   # Integration tests
-│
 ├── samples/                           # Sample Data
-│   ├── batch/                         # CSV files
-│   ├── streaming/                     # JSON events
+│   ├── batch/                         # CSV files (policies, claims, customers, agents)
+│   ├── streaming/                     # JSON events (realtime claims)
 │   └── nosql/                         # Cosmos enrichment data
 │
-├── requirements.txt                   # Python dependencies
+├── data-quality/                      # Data Quality Configuration
+│   └── data_quality_rules.yaml        # Centralized DQ rules
+│
+├── monitoring/                        # Monitoring Dashboards
+│   └── dashboards/                    # JSON dashboard definitions
+│
+├── requirements.txt                   # Python dependencies (Fabric runtime)
 └── README.md                          # This file
 ```
 
@@ -178,12 +195,11 @@ Insurance-ML-Data-Platform/
 git clone https://github.com/yourorg/Insurance-ML-Data-Platform.git
 cd Insurance-ML-Data-Platform
 
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Verify configuration
+# Verify configuration files (optional)
 python -c "import yaml; print(yaml.safe_load(open('devops/parameters/fabric.yml')))"
 ```
+
+**Note**: All development and testing are performed directly in Microsoft Fabric workspace. Notebooks import framework libraries via `sys.path.append("/Workspace/framework/libs")`. No local development setup required.
 
 ### Deployment Steps
 
@@ -233,29 +249,66 @@ python -c "import yaml; print(yaml.safe_load(open('devops/parameters/fabric.yml'
    # Configure Fabric Workspace → Git integration → Azure DevOps repo
    ```
 
-6. **Validate Deployment**
+6. **Initialize Control Tables**
    ```bash
-   # In Fabric Workspace:
-   # 1. Open master_batch_pipeline → Run
-   # 2. Check Tables: bronze_*, silver_*, gold_*
-   # 3. Query KQL Database for streaming events
-   # 4. View monitoring dashboards
+   # In Fabric Workspace, run initialization script:
+   # framework/setup/init_control_tables.py
+   # This will create:
+   # - watermark_control table
+   # - dq_check_results table
    ```
 
-### Local Development
+7. **Upload Sample Data**
+   ```bash
+   # Upload sample CSV files to Lakehouse Files:
+   # - Files/samples/batch/policies.csv
+   # - Files/samples/batch/claims.csv
+   # - Files/samples/batch/customers.csv
+   # - Files/samples/batch/agents.csv
+   ```
 
+8. **Validate Deployment**
+   ```bash
+   # In Fabric Workspace:
+   # 1. Run master_batch_pipeline
+   # 2. Check Tables: bronze_*, silver_*, gold_*
+   # 3. Query KQL Database for streaming events
+   # 4. Execute framework/scripts/validate_deployment.py
+   # 5. View monitoring dashboards
+   ```
+
+### Testing in Fabric
+
+All testing is performed directly in Microsoft Fabric workspace:
+
+**Data Quality Testing:**
 ```bash
-# Run unit tests
-pytest tests/unit/ -v
+# Run standard DQ checks
+# Execute: lakehouse/silver/notebooks/dq_checks.py
 
-# Run integration tests (requires Fabric workspace)
-pytest tests/integration/ -v
+# Run Great Expectations validation
+# Execute: lakehouse/silver/notebooks/dq_checks_with_great_expectations.py
+```
 
-# Lint code
-flake8 framework/ lakehouse/
+**End-to-End Testing:**
+```bash
+# In Fabric Workspace, execute notebooks in sequence:
+# 1. Bronze ingestion notebooks
+# 2. Silver cleaning notebooks
+# 3. Gold feature engineering notebooks
+# 4. Validate data lineage and quality
+```
 
-# Format code
-black framework/ lakehouse/
+**Maintenance Operations:**
+```bash
+# Run Delta Lake maintenance (OPTIMIZE, ZORDER, VACUUM)
+# Execute: framework/scripts/delta_maintenance.py
+
+# Validate deployment completeness
+# Execute: framework/scripts/validate_deployment.py
+
+# Initialize watermark control
+# Execute: framework/scripts/initialize_watermark_table.py
 ```
 
 ## 📚 Framework Usage Examples
@@ -282,6 +335,7 @@ merge_delta(
 
 ### Data Quality Validation
 
+**Standard DQ Checks:**
 ```python
 from framework.libs.data_quality import check_nulls, detect_duplicates, check_freshness
 
@@ -296,6 +350,42 @@ assert dup_result["passed"], f"Found {dup_result['duplicate_count']} duplicates"
 
 # Data freshness check
 freshness = check_freshness(df, timestamp_column="ingestion_timestamp", max_age_hours=24)
+```
+
+**Great Expectations Validation:**
+```python
+from framework.libs.great_expectations_validator import validate_with_great_expectations
+
+# Define expectations
+expectations = [
+    {
+        "expectation_type": "expect_column_values_to_not_be_null",
+        "column": "policy_id"
+    },
+    {
+        "expectation_type": "expect_column_values_to_be_between",
+        "column": "premium",
+        "min_value": 0,
+        "max_value": 1000000
+    },
+    {
+        "expectation_type": "expect_column_values_to_be_in_set",
+        "column": "status",
+        "value_set": ["ACTIVE", "INACTIVE", "PENDING"]
+    }
+]
+
+# Run validation
+results = validate_with_great_expectations(
+    df=df_policies,
+    table_name="silver_policies",
+    expectations_config=expectations
+)
+
+if results["success"]:
+    logger.info("All Great Expectations checks passed!")
+else:
+    logger.error(f"Failed expectations: {results['results']}")
 ```
 
 ### Cosmos DB Enrichment

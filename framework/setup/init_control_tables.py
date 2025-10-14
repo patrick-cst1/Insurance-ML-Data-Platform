@@ -41,21 +41,14 @@ def init_dq_results_table(spark: SparkSession, table_path: str = "Tables/dq_chec
     logger = get_logger("init_dq_results_table")
     
     schema = StructType([
-        StructField("check_id", StringType(), False),
-        StructField("check_timestamp", TimestampType(), False),
         StructField("table_name", StringType(), False),
-        StructField("layer", StringType(), False),
         StructField("record_count", IntegerType(), True),
-        StructField("null_check", BooleanType(), True),
-        StructField("null_violations", StringType(), True),
-        StructField("duplicate_check", BooleanType(), True),
-        StructField("duplicate_count", IntegerType(), True),
-        StructField("freshness_check", BooleanType(), True),
-        StructField("freshness_age_hours", DoubleType(), True),
-        StructField("schema_check", BooleanType(), True),
-        StructField("schema_violations", StringType(), True),
         StructField("overall_passed", BooleanType(), False),
-        StructField("execution_duration_seconds", DoubleType(), True)
+        StructField("duplicate_check", BooleanType(), True),
+        StructField("null_check", BooleanType(), True),
+        StructField("freshness_check", BooleanType(), True),
+        StructField("check_timestamp", TimestampType(), False),
+        StructField("details", StringType(), True)
     ])
     
     # Create empty table

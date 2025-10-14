@@ -1,0 +1,125 @@
+# Great Expectations Validation Rules
+# Defines expectations for each table in the Medallion architecture
+
+silver_policies:
+  suite_name: silver_policies_suite
+  expectations:
+    - expectation_type: expect_column_values_to_not_be_null
+      column: policy_id
+    - expectation_type: expect_column_values_to_not_be_null
+      column: customer_id
+    - expectation_type: expect_column_values_to_not_be_null
+      column: premium
+    - expectation_type: expect_column_values_to_be_between
+      column: premium
+      min_value: 0
+      max_value: 1000000
+      mostly: 0.99
+    - expectation_type: expect_column_values_to_be_in_set
+      column: status
+      value_set: ["ACTIVE", "INACTIVE", "PENDING", "CANCELLED"]
+    - expectation_type: expect_column_values_to_be_in_set
+      column: product_type
+      value_set: ["AUTO", "HOME", "LIFE", "HEALTH", "BUSINESS"]
+    - expectation_type: expect_table_row_count_to_be_between
+      min_value: 1
+
+silver_claims:
+  suite_name: silver_claims_suite
+  expectations:
+    - expectation_type: expect_column_values_to_not_be_null
+      column: claim_id
+    - expectation_type: expect_column_values_to_not_be_null
+      column: policy_id
+    - expectation_type: expect_column_values_to_not_be_null
+      column: claim_amount
+    - expectation_type: expect_column_values_to_be_between
+      column: claim_amount
+      min_value: 0
+      max_value: 10000000
+      mostly: 0.95
+    - expectation_type: expect_column_values_to_be_in_set
+      column: status
+      value_set: ["OPEN", "CLOSED", "PENDING", "APPROVED", "REJECTED"]
+    - expectation_type: expect_column_values_to_match_strftime_format
+      column: claim_date
+      strftime_format: "%Y-%m-%d"
+    - expectation_type: expect_table_row_count_to_be_between
+      min_value: 1
+
+silver_customers:
+  suite_name: silver_customers_suite
+  expectations:
+    - expectation_type: expect_column_values_to_not_be_null
+      column: customer_id
+    - expectation_type: expect_column_values_to_not_be_null
+      column: name
+    - expectation_type: expect_column_values_to_match_regex
+      column: email
+      regex: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+      mostly: 0.90
+    - expectation_type: expect_column_values_to_be_between
+      column: age
+      min_value: 18
+      max_value: 120
+      mostly: 0.99
+    - expectation_type: expect_table_row_count_to_be_between
+      min_value: 1
+
+silver_agents:
+  suite_name: silver_agents_suite
+  expectations:
+    - expectation_type: expect_column_values_to_not_be_null
+      column: agent_id
+    - expectation_type: expect_column_values_to_not_be_null
+      column: name
+    - expectation_type: expect_column_values_to_be_in_set
+      column: status
+      value_set: ["ACTIVE", "INACTIVE", "SUSPENDED"]
+    - expectation_type: expect_column_values_to_be_in_set
+      column: agent_type
+      value_set: ["CAPTIVE", "INDEPENDENT", "BROKER"]
+    - expectation_type: expect_table_row_count_to_be_between
+      min_value: 1
+
+gold_claims_features:
+  suite_name: gold_claims_features_suite
+  expectations:
+    - expectation_type: expect_column_values_to_not_be_null
+      column: customer_id
+    - expectation_type: expect_column_values_to_be_between
+      column: claims_count_30d
+      min_value: 0
+      max_value: 100
+    - expectation_type: expect_column_values_to_be_between
+      column: claim_amount_sum_30d
+      min_value: 0
+    - expectation_type: expect_column_values_to_not_be_null
+      column: feature_timestamp
+    - expectation_type: expect_table_row_count_to_be_between
+      min_value: 1
+
+gold_customer_features:
+  suite_name: gold_customer_features_suite
+  expectations:
+    - expectation_type: expect_column_values_to_not_be_null
+      column: customer_id
+    - expectation_type: expect_column_values_to_not_be_null
+      column: feature_timestamp
+    - expectation_type: expect_table_row_count_to_be_between
+      min_value: 1
+
+gold_risk_features:
+  suite_name: gold_risk_features_suite
+  expectations:
+    - expectation_type: expect_column_values_to_not_be_null
+      column: customer_id
+    - expectation_type: expect_column_values_to_be_between
+      column: risk_score
+      min_value: 0
+      max_value: 100
+      mostly: 0.95
+    - expectation_type: expect_column_values_to_not_be_null
+      column: feature_timestamp
+    - expectation_type: expect_table_row_count_to_be_between
+      min_value: 1

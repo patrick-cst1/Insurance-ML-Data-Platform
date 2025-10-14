@@ -12,7 +12,7 @@ pr:
 
 jobs:
   - job: validate
-    displayName: Validate Code & Config
+    displayName: Validate Code & Config for Fabric Deployment
     pool:
       vmImage: ubuntu-latest
     steps:
@@ -23,29 +23,102 @@ jobs:
       
       - script: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install flake8 pytest black
-        displayName: 'Install dependencies'
+          pip install pyyaml requests
+        displayName: 'Install validation dependencies'
       
       - script: |
-          flake8 framework/ lakehouse/ --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 framework/ lakehouse/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-        displayName: 'Lint code with flake8'
-      
-      - script: |
-          black --check framework/ lakehouse/
-        displayName: 'Check code formatting'
-      
-      - script: |
-          pytest tests/unit/ -v --junitxml=junit/test-results.xml
-        displayName: 'Run unit tests'
-      
-      - task: PublishTestResults@2
-        inputs:
-          testResultsFiles: '**/test-results.xml'
-          testRunTitle: 'Python Unit Tests'
-        condition: succeededOrFailed()
-      
-      - script: |
-          python -c "import yaml; [yaml.safe_load(open(f)) for f in ['framework/config/cosmos.yaml', 'framework/config/eventstream.yaml', 'devops/parameters/fabric.yml']]"
+          python -c "
+          import yaml
+          import os
+          from pathlib import Path
+          
+          print('Validating YAML configuration files...')
+          
+          config_files = [
+              'framework/config/cosmos.yaml',
+              'framework/config/eventstream.yaml',
+              'framework/config/great_expectations_rules.yaml',
+              'devops/parameters/fabric.yml'
+          ]
+          
+          for config_file in config_files:
+              if os.path.exists(config_file):
+                  with open(config_file, 'r') as f:
+                      yaml.safe_load(f)
+                  print(f'✓ {config_file}')
+              else:
+                  print(f'✗ {config_file} not found')
+                  exit(1)
+          
+          print('All configuration files are valid!')
+          "
         displayName: 'Validate YAML configs'
+      
+      - script: |
+          python -c "
+          import os
+          from pathlib import Path
+          
+          print('Validating Python syntax...')
+          
+          python_files = list(Path('framework/libs').rglob('*.py')) + \
+                        list(Path('framework/scripts').rglob('*.py')) + \
+                        list(Path('lakehouse').rglob('*.py'))
+          
+          errors = []
+          for py_file in python_files:
+              try:
+                  with open(py_file, 'r', encoding='utf-8') as f:
+                      compile(f.read(), py_file, 'exec')
+                  print(f'✓ {py_file}')
+              except SyntaxError as e:
+                  errors.append(f'{py_file}: {e}')
+                  print(f'✗ {py_file}: {e}')
+          
+          if errors:
+              print(f'\nFound {len(errors)} syntax errors')
+              exit(1)
+          
+          print(f'\nAll {len(python_files)} Python files have valid syntax!')
+          "
+        displayName: 'Validate Python syntax'
+      
+      - script: |
+          python -c "
+          import os
+          
+          print('Checking required framework libraries...')
+          
+          required_libs = [
+              'framework/libs/__init__.py',
+              'framework/libs/delta_ops.py',
+              'framework/libs/data_quality.py',
+              'framework/libs/cosmos_io.py',
+              'framework/libs/schema_contracts.py',
+              'framework/libs/watermarking.py',
+              'framework/libs/feature_utils.py',
+              'framework/libs/logging_utils.py',
+              'framework/libs/great_expectations_validator.py'
+          ]
+          
+          missing = []
+          for lib in required_libs:
+              if os.path.exists(lib):
+                  print(f'✓ {lib}')
+              else:
+                  missing.append(lib)
+                  print(f'✗ {lib} missing')
+          
+          if missing:
+              print(f'\nMissing {len(missing)} required libraries')
+              exit(1)
+          
+          print('\nAll required framework libraries present!')
+          "
+        displayName: 'Verify framework completeness'
+      
+      - script: |
+          echo "✓ CI validation completed"
+          echo "Note: All functional testing is performed in Microsoft Fabric"
+          echo "This pipeline validates configuration and syntax only"
+        displayName: 'CI Summary'

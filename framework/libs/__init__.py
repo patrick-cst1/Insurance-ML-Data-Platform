@@ -30,6 +30,12 @@ from .feature_utils import (
     add_feature_metadata
 )
 from .logging_utils import get_logger, log_dataframe_stats, log_pipeline_step, PipelineTimer
+from .great_expectations_validator import (
+    GreatExpectationsValidator,
+    validate_with_great_expectations,
+    create_standard_expectations_for_table
+)
+from .alerting import AlertingService, create_alerting_service
 
 __all__ = [
     # Delta operations
@@ -69,4 +75,11 @@ __all__ = [
     "log_dataframe_stats",
     "log_pipeline_step",
     "PipelineTimer",
+    # Great Expectations
+    "GreatExpectationsValidator",
+    "validate_with_great_expectations",
+    "create_standard_expectations_for_table",
+    # Alerting
+    "AlertingService",
+    "create_alerting_service",
 ]
