@@ -59,8 +59,7 @@ def main():
         write_delta(
             df=df_enriched,
             path=ENRICHED_OUTPUT_PATH,
-            mode="overwrite",
-            partition_by=["ingestion_date"]
+            mode="overwrite"
         )
         
         logger.info("Cosmos enrichment completed")

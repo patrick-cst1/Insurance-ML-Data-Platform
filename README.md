@@ -93,10 +93,10 @@ sequenceDiagram
 | Component | Description | Technology Stack |
 |-----------|-------------|------------------|
 | **Lakehouse Storage** | Delta Lake tables with ACID transactions | Microsoft Fabric Lakehouse, Delta Lake 3.0 |
-| **Data Processing** | Distributed ETL/ELT transformations | PySpark 3.5, Databricks Runtime |
+| **Data Processing** | Distributed ETL/ELT transformations | PySpark 3.5 (Fabric runtime) |
 | **NoSQL Database** | External enrichment data store | Azure Cosmos DB (NoSQL API) |
 | **Streaming** | Real-time event ingestion & processing | Eventstream, KQL Database |
-| **Orchestration** | Pipeline scheduling & dependencies | Data Factory, Master Pipelines |
+| **Orchestration** | Pipeline scheduling & dependencies | Fabric Data Pipelines (master pipelines) |
 | **CI/CD** | Automated deployment automation | Azure DevOps, Fabric Deployment Pipelines |
 | **Data Quality** | Dual validation system: standard validators (inline) + Great Expectations (gate) | Custom validators (6 functions), Great Expectations |
 | **Secrets Management** | Secure credential storage | Azure Key Vault |
@@ -344,8 +344,8 @@ All testing and validation are performed directly in Microsoft Fabric workspace 
 # Delta Lake optimization (OPTIMIZE, ZORDER, VACUUM):
 # Execute: framework/scripts/delta_maintenance.py
 
-# Initialize watermark control table:
-# Execute: framework/scripts/initialize_watermark_table.py
+# Initialize control tables (watermark + DQ results):
+# Execute: framework/setup/init_control_tables.py
 
 # Generate DQ summary report:
 # Execute: monitoring/scripts/generate_data_quality_report.py
