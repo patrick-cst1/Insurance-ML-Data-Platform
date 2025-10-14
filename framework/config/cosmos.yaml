@@ -1,0 +1,10 @@
+account: TBD
+containers:
+  policy_enrichment:
+    database: TBD
+    container: policy-enrichment
+    partition_key: /policyId
+  customer_risk_profiles:
+    database: TBD
+    container: customer-risk-profiles
+    partition_key: /customerId

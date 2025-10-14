@@ -1,0 +1,1 @@
+.create table realtime_claims_events (event_time:datetime, claim_id:string, policy_id:string, amount:double, status:string)

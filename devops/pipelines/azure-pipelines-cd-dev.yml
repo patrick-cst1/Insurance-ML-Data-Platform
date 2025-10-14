@@ -1,0 +1,16 @@
+trigger:
+  branches:
+    include:
+      - develop
+
+stages:
+  - stage: Deploy_Dev
+    displayName: Deploy to Fabric Dev
+    jobs:
+      - job: deploy_dev
+        displayName: Deploy Dev Workspace
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - script: echo "Authenticate to Fabric and deploy Dev artifacts"
+            displayName: Fabric Dev deployment placeholder

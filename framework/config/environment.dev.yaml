@@ -1,0 +1,10 @@
+workspace:
+  name: Insurance-Dev
+  lakehouses:
+    bronze: lh_bronze
+    silver: lh_silver
+    gold: lh_gold
+cosmos:
+  connection_string_secret: kv-dev-cosmos-conn
+kql:
+  database: kql_insurance_realtime_dev

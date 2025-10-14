@@ -1,0 +1,10 @@
+layers:
+  bronze:
+    lakehouse: lh_bronze
+    tables: {}
+  silver:
+    lakehouse: lh_silver
+    tables: {}
+  gold:
+    lakehouse: lh_gold
+    tables: {}

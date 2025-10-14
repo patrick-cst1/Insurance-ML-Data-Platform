@@ -1,0 +1,3 @@
+alerts:
+  - name: pipeline_failure
+    severity: high

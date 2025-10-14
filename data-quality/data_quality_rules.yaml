@@ -1,0 +1,10 @@
+rules:
+  bronze:
+    - name: record_count_check
+      threshold: TBD
+  silver:
+    - name: schema_validation
+      threshold: TBD
+  gold:
+    - name: feature_value_range
+      threshold: TBD

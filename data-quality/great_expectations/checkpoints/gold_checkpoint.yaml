@@ -1,0 +1,4 @@
+name: gold_checkpoint
+config_version: 1
+class_name: SimpleCheckpoint
+expectation_suite_name: gold_layer_expectations

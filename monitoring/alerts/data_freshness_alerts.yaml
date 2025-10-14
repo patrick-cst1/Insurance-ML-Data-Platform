@@ -1,0 +1,3 @@
+alerts:
+  - name: gold_data_freshness
+    threshold_minutes: 60

@@ -1,0 +1,8 @@
+eventstream:
+  name: es_insurance_realtime
+  inputs: []
+  outputs:
+    kql_database: kql_insurance_realtime
+    lakehouse:
+      workspace_lakehouse: lh_bronze
+      table: bronze_realtime_events

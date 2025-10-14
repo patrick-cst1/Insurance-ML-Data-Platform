@@ -1,0 +1,16 @@
+[
+  {
+    "id": "P1",
+    "policyId": "P1",
+    "risk_score": 65,
+    "underwriting_flags": ["HIGH_VALUE", "STANDARD_RISK"],
+    "external_rating": "A"
+  },
+  {
+    "id": "P2",
+    "policyId": "P2",
+    "risk_score": 42,
+    "underwriting_flags": ["LOW_RISK"],
+    "external_rating": "AA"
+  }
+]
