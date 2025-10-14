@@ -1,11 +1,11 @@
-customer_id,name,age,gender,location,join_date
-C1,John Smith,35,M,New York,2023-12-01
-C2,Sarah Johnson,42,F,Los Angeles,2023-11-15
-C3,Michael Chen,28,M,San Francisco,2024-01-05
-C4,Emily Davis,51,F,Chicago,2024-02-10
-C5,Robert Brown,39,M,Boston,2024-03-20
-C6,Lisa Wilson,45,F,Seattle,2024-04-15
-C7,David Martinez,33,M,Austin,2024-05-01
-C8,Jennifer Taylor,29,F,Denver,2024-06-10
-C9,James Anderson,47,M,Miami,2024-07-01
-C10,Maria Garcia,38,F,Phoenix,2024-08-01
+customer_id,name,age,gender,email,phone,location,join_date,customer_type
+C1,John Smith,35,M,john.smith@email.com,555-0101,New York,2023-12-01,INDIVIDUAL
+C2,Sarah Johnson,42,F,sarah.j@email.com,555-0102,Los Angeles,2023-11-15,INDIVIDUAL
+C3,Michael Chen,28,M,mchen@email.com,555-0103,San Francisco,2024-01-05,INDIVIDUAL
+C4,Emily Davis,51,F,emily.d@email.com,555-0104,Chicago,2024-02-10,CORPORATE
+C5,Robert Brown,39,M,rbrown@email.com,555-0105,Boston,2024-03-20,INDIVIDUAL
+C6,Lisa Wilson,45,F,lwilson@email.com,555-0106,Seattle,2024-04-15,INDIVIDUAL
+C7,David Martinez,33,M,dmartinez@email.com,555-0107,Austin,2024-05-01,INDIVIDUAL
+C8,Jennifer Taylor,29,F,jtaylor@email.com,555-0108,Denver,2024-06-10,CORPORATE
+C9,James Anderson,47,M,janderson@email.com,555-0109,Miami,2024-07-01,INDIVIDUAL
+C10,Maria Garcia,38,F,mgarcia@email.com,555-0110,Phoenix,2024-08-01,INDIVIDUAL

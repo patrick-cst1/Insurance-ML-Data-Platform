@@ -17,7 +17,7 @@ silver_policies:
       mostly: 0.99
     - expectation_type: expect_column_values_to_be_in_set
       column: status
-      value_set: ["ACTIVE", "INACTIVE", "PENDING", "CANCELLED"]
+      value_set: ["ACTIVE", "INACTIVE", "EXPIRED", "CANCELLED", "PENDING", "SUSPENDED"]
     - expectation_type: expect_column_values_to_be_in_set
       column: product_type
       value_set: ["AUTO", "HOME", "LIFE", "HEALTH", "BUSINESS"]
@@ -40,7 +40,7 @@ silver_claims:
       mostly: 0.95
     - expectation_type: expect_column_values_to_be_in_set
       column: claim_status
-      value_set: ["OPEN", "CLOSED", "PENDING", "APPROVED", "REJECTED"]
+      value_set: ["SUBMITTED", "UNDER_REVIEW", "PENDING", "APPROVED", "REJECTED", "PAID"]
     - expectation_type: expect_column_values_to_match_strftime_format
       column: claim_date
       strftime_format: "%Y-%m-%d"

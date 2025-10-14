@@ -34,4 +34,4 @@ validation_rules:
     min: 0
     max: 100000000
   - column: status
-    allowed_values: ["ACTIVE", "EXPIRED", "CANCELLED", "PENDING"]
+    allowed_values: ["ACTIVE", "INACTIVE", "EXPIRED", "CANCELLED", "PENDING", "SUSPENDED"]

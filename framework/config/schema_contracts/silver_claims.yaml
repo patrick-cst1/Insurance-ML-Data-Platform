@@ -30,4 +30,4 @@ validation_rules:
     min: 0
     max: 10000000
   - column: claim_status
-    allowed_values: ["SUBMITTED", "UNDER_REVIEW", "APPROVED", "REJECTED", "PAID"]
+    allowed_values: ["SUBMITTED", "UNDER_REVIEW", "PENDING", "APPROVED", "REJECTED", "PAID"]
