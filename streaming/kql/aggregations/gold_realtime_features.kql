@@ -1,1 +1,64 @@
-// Placeholder for gold real-time feature aggregations
+// Gold Real-time Features - Materialized Views
+// Aggregated features for online ML inference
+
+// 1. Real-time Claims Aggregations (1-hour window)
+.create materialized-view with (backfill=true) claims_1hr_agg on table realtime_claims_events
+{
+    realtime_claims_events
+    | where event_time > ago(1h)
+    | summarize 
+        claims_count_1hr = count(),
+        total_amount_1hr = sum(amount),
+        avg_amount_1hr = avg(amount),
+        max_amount_1hr = max(amount)
+        by policy_id, bin(event_time, 1h)
+}
+
+// 2. Real-time Claims Aggregations (24-hour window)
+.create materialized-view with (backfill=true) claims_24hr_agg on table realtime_claims_events
+{
+    realtime_claims_events
+    | where event_time > ago(24h)
+    | summarize 
+        claims_count_24hr = count(),
+        total_amount_24hr = sum(amount),
+        avg_amount_24hr = avg(amount),
+        max_amount_24hr = max(amount),
+        distinct_claim_types = dcount(status)
+        by policy_id, bin(event_time, 1h)
+}
+
+// 3. Customer Interaction Summary (real-time)
+.create materialized-view with (backfill=true) customer_interaction_summary on table customer_interactions
+{
+    customer_interactions
+    | where event_time > ago(7d)
+    | summarize 
+        total_interactions = count(),
+        avg_duration = avg(duration_seconds),
+        avg_satisfaction = avg(satisfaction_score),
+        last_interaction = max(event_time)
+        by customer_id, interaction_type
+}
+
+// 4. Real-time Feature Union (for ML serving)
+.create function claims_features_realtime(lookback_hours:timespan = 1h)
+{
+    realtime_claims_events
+    | where event_time > ago(lookback_hours)
+    | summarize 
+        recent_claims_count = count(),
+        recent_claims_amount = sum(amount),
+        last_claim_time = max(event_time)
+        by policy_id
+}
+
+// 5. High-risk Claims Detection (real-time alerting)
+.create function high_risk_claims()
+{
+    realtime_claims_events
+    | where event_time > ago(1h)
+    | where amount > 10000 or status == 'URGENT'
+    | project event_time, claim_id, policy_id, amount, status
+    | order by event_time desc
+}

@@ -1,1 +1,37 @@
-// Placeholder KQL table definition for customer interaction events
+// KQL Table: Customer Interaction Events
+// Create table for real-time customer interactions
+
+.create table customer_interactions (
+    event_time: datetime,
+    customer_id: string,
+    interaction_type: string,
+    channel: string,
+    policy_id: string,
+    agent_id: string,
+    duration_seconds: int,
+    satisfaction_score: int,
+    ingestion_time: datetime
+)
+
+// Create mapping for ingestion
+.create table customer_interactions ingestion json mapping 'customer_interactions_mapping' 
+'['
+'    {"column":"event_time","path":"$.event_time","datatype":"datetime"},'
+'    {"column":"customer_id","path":"$.customer_id","datatype":"string"},'
+'    {"column":"interaction_type","path":"$.interaction_type","datatype":"string"},'
+'    {"column":"channel","path":"$.channel","datatype":"string"},'
+'    {"column":"policy_id","path":"$.policy_id","datatype":"string"},'
+'    {"column":"agent_id","path":"$.agent_id","datatype":"string"},'
+'    {"column":"duration_seconds","path":"$.duration_seconds","datatype":"int"},'
+'    {"column":"satisfaction_score","path":"$.satisfaction_score","datatype":"int"},'
+'    {"column":"ingestion_time","path":"$.ingestion_time","datatype":"datetime"}'
+']'
+
+// Set retention policy (30 days)
+.alter table customer_interactions policy retention 
+```
+{
+  "SoftDeletePeriod": "30.00:00:00",
+  "Recoverability": "Enabled"
+}
+```

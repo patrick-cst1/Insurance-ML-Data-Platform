@@ -1,1 +1,45 @@
-.create table realtime_claims_events (event_time:datetime, claim_id:string, policy_id:string, amount:double, status:string)
+// KQL Table: Real-time Claims Events
+// Create table for streaming claims from Eventstream
+
+.create table realtime_claims_events (
+    event_time: datetime,
+    claim_id: string,
+    policy_id: string,
+    amount: double,
+    status: string,
+    ingestion_time: datetime
+)
+
+// Create mapping for JSON ingestion from Eventstream
+.create table realtime_claims_events ingestion json mapping 'realtime_claims_mapping' 
+'['
+'    {"column":"event_time","path":"$.event_time","datatype":"datetime"},'
+'    {"column":"claim_id","path":"$.claim_id","datatype":"string"},'
+'    {"column":"policy_id","path":"$.policy_id","datatype":"string"},'
+'    {"column":"amount","path":"$.amount","datatype":"double"},'
+'    {"column":"status","path":"$.status","datatype":"string"},'
+'    {"column":"ingestion_time","path":"$.ingestion_time","datatype":"datetime"}'
+']'
+
+// Set retention policy (30 days for real-time events)
+.alter table realtime_claims_events policy retention 
+```
+{
+  "SoftDeletePeriod": "30.00:00:00",
+  "Recoverability": "Enabled"
+}
+```
+
+// Create update policy to auto-populate ingestion_time if not provided
+.alter table realtime_claims_events policy update
+```
+[
+  {
+    "IsEnabled": true,
+    "Source": "realtime_claims_events",
+    "Query": "realtime_claims_events | extend ingestion_time = coalesce(ingestion_time, now())",
+    "IsTransactional": false,
+    "PropagateIngestionProperties": false
+  }
+]
+```

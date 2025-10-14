@@ -1,1 +1,32 @@
-{\n   name: gold_realtime_aggregation,\n  description: Placeholder for Gold real-time aggregation pipeline definition\n}\n
+{
+  "name": "gold_realtime_aggregation",
+  "description": "Gold real-time aggregation pipeline for streaming features",
+  "activities": [
+    {
+      "name": "Aggregate_Streaming_Features",
+      "type": "DatabricksNotebook",
+      "dependsOn": [],
+      "policy": {
+        "timeout": "0.00:30:00",
+        "retry": 1,
+        "retryIntervalInSeconds": 30
+      },
+      "typeProperties": {
+        "notebookPath": "/lakehouse/gold/notebooks/aggregate_streaming_features",
+        "baseParameters": {}
+      }
+    }
+  ],
+  "triggers": [
+    {
+      "name": "Hourly_Streaming_Aggregation",
+      "type": "ScheduleTrigger",
+      "recurrence": {
+        "frequency": "Hour",
+        "interval": 1,
+        "startTime": "2025-01-01T00:00:00Z",
+        "timeZone": "UTC"
+      }
+    }
+  ]
+}
