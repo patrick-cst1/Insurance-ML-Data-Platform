@@ -10,6 +10,7 @@ import os
 sys.path.append("/Workspace/framework/libs")
 sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
 from delta_ops import read_delta, write_delta
+from purview_integration import PurviewMetadata
 from cosmos_io import enrich_dataframe
 from logging_utils import get_logger, PipelineTimer
 
@@ -56,10 +57,13 @@ def main():
             df_enriched = df_silver
         
         # Write enriched data
+        metadata = PurviewMetadata.get_silver_metadata("silver_policies_enriched", has_scd2=True, pii=False)
         write_delta(
             df=df_enriched,
             path=ENRICHED_OUTPUT_PATH,
-            mode="overwrite"
+            mode="overwrite",
+            description=metadata["description"],
+            tags=metadata["tags"]
         )
         
         logger.info("Cosmos enrichment completed")

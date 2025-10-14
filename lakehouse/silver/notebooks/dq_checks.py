@@ -134,7 +134,7 @@ def main():
             all_results.append(result)
         
         # Create results DataFrame
-        results_df = spark.createDataFrame([
+        results_rows = [
             {
                 "table_name": r["table_name"],
                 "record_count": r.get("record_count", 0),
@@ -142,11 +142,12 @@ def main():
                 "duplicate_check": r.get("checks", {}).get("duplicates", {}).get("passed", False),
                 "null_check": r.get("checks", {}).get("nulls", {}).get("passed", False),
                 "freshness_check": r.get("checks", {}).get("freshness", {}).get("passed", False),
-                "check_timestamp": current_timestamp(),
                 "details": json.dumps(r)
             }
             for r in all_results
-        ])
+        ]
+        results_df = spark.createDataFrame(results_rows)
+        results_df = results_df.withColumn("check_timestamp", current_timestamp())
         
         # Write DQ results to Delta table
         write_delta(

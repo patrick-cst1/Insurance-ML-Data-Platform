@@ -9,6 +9,7 @@ import sys
 
 sys.path.append("/Workspace/framework/libs")
 from delta_ops import read_delta, write_delta
+from purview_integration import PurviewMetadata
 from feature_utils import build_aggregation_features, add_feature_metadata
 from logging_utils import get_logger, PipelineTimer
 
@@ -62,11 +63,14 @@ def main():
         logger.info(f"Created features for {claims_features.count()} customers")
         
         # Write to Gold
+        metadata = PurviewMetadata.get_gold_metadata("gold_claims_features", feature_type="claims")
         write_delta(
             df=claims_features,
             path=GOLD_FEATURES_PATH,
             mode="overwrite",
-            partition_by=["feature_timestamp"]
+            partition_by=["feature_timestamp"],
+            description=metadata["description"],
+            tags=metadata["tags"]
         )
         
         logger.info("Claims features creation completed")

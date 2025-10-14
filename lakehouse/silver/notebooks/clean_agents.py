@@ -9,6 +9,7 @@ import sys
 
 sys.path.append("/Workspace/framework/libs")
 from delta_ops import read_delta, write_delta
+from purview_integration import PurviewMetadata
 from data_quality import check_nulls, detect_duplicates
 from feature_utils import create_scd2_features
 from logging_utils import get_logger, PipelineTimer
@@ -58,8 +59,15 @@ def main():
             
             logger.info(f"Writing {df_scd2.count()} records to Silver")
             
-            # Write to Silver
-            df_scd2.write.format("delta").mode("overwrite").save(SILVER_PATH)
+            # Write to Silver with Purview metadata
+            metadata = PurviewMetadata.get_silver_metadata("silver_agents", has_scd2=True, pii=False)
+            write_delta(
+                df=df_scd2,
+                path=SILVER_PATH,
+                mode="overwrite",
+                description=metadata["description"],
+                tags=metadata["tags"]
+            )
             
             logger.info("Silver agents cleaning completed successfully")
             

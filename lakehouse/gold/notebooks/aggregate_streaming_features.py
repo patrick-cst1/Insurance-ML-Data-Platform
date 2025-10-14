@@ -10,6 +10,7 @@ import sys
 
 sys.path.append("/Workspace/framework/libs")
 from delta_ops import read_delta, write_delta
+from purview_integration import PurviewMetadata
 from feature_utils import add_feature_metadata
 from logging_utils import get_logger, PipelineTimer
 
@@ -58,10 +59,13 @@ def main():
         logger.info(f"Created streaming features for {streaming_features.count()} policies")
         
         # Write to Gold
+        metadata = PurviewMetadata.get_gold_metadata("gold_streaming_features", feature_type="streaming")
         write_delta(
             df=streaming_features,
             path="Tables/gold_streaming_features",
-            mode="overwrite"
+            mode="overwrite",
+            description=metadata["description"],
+            tags=metadata["tags"]
         )
         
         logger.info("Streaming feature aggregation completed")

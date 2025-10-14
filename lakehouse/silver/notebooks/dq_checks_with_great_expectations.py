@@ -109,19 +109,20 @@ def main():
                 all_results.append(result)
         
         # Create results DataFrame
-        results_df = spark.createDataFrame([
+        results_rows = [
             {
                 "table_name": r["table_name"],
                 "record_count": r.get("record_count", 0),
                 "overall_passed": r["overall_passed"],
                 "successful_expectations": r.get("successful_expectations", 0),
                 "evaluated_expectations": r.get("evaluated_expectations", 0),
-                "check_timestamp": current_timestamp(),
                 "validation_engine": "great_expectations",
                 "details": json.dumps(r)
             }
             for r in all_results
-        ])
+        ]
+        results_df = spark.createDataFrame(results_rows)
+        results_df = results_df.withColumn("check_timestamp", current_timestamp())
         
         # Write GE results to Delta table
         write_delta(

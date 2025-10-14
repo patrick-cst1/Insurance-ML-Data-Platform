@@ -7,6 +7,7 @@ import sys
 
 sys.path.append("/Workspace/framework/libs")
 from delta_ops import read_delta, write_delta
+from purview_integration import PurviewMetadata
 from feature_utils import add_feature_metadata
 from logging_utils import get_logger, PipelineTimer
 
@@ -51,7 +52,14 @@ def main():
         
         logger.info(f"Created risk features for {risk_features.count()} policies")
         
-        write_delta(risk_features, "Tables/gold_risk_features", mode="overwrite")
+        metadata = PurviewMetadata.get_gold_metadata("gold_risk_features", feature_type="risk")
+        write_delta(
+            df=risk_features,
+            path="Tables/gold_risk_features",
+            mode="overwrite",
+            description=metadata["description"],
+            tags=metadata["tags"]
+        )
         logger.info("Risk features creation completed")
 
 # COMMAND ----------

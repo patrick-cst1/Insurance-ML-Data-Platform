@@ -119,7 +119,7 @@ Insurance-ML-Data-Platform/
 │   │   ├── schema_silver.yaml         # Silver layer schema
 │   │   └── schema_gold.yaml           # Gold layer schema
 │   │
-│   ├── libs/                          # Core Libraries (9 modules)
+│   ├── libs/                          # Core Libraries (10 modules)
 │   │   ├── __init__.py                # Module exports
 │   │   ├── delta_ops.py               # Delta Lake operations (read, write, merge, optimize)
 │   │   ├── data_quality.py            # DQ validation functions (6 validators)
@@ -128,7 +128,8 @@ Insurance-ML-Data-Platform/
 │   │   ├── schema_contracts.py        # Schema validation (load, validate, enforce)
 │   │   ├── watermarking.py            # Incremental processing (get, update, reset watermarks)
 │   │   ├── feature_utils.py           # Feature engineering (aggregations, SCD2, point-in-time)
-│   │   └── logging_utils.py           # Logging & monitoring utilities
+│   │   ├── logging_utils.py           # Logging & monitoring utilities
+│   │   └── purview_integration.py     # Purview metadata helpers (standardized tags)
 │   │
 │   ├── scripts/                       # Management Scripts (4 scripts)
 │   │   ├── __init__.py                # Module exports
@@ -561,6 +562,26 @@ purview:
 ```
 
 **Note**: No additional setup required. Purview Hub is automatically available in all Fabric workspaces.
+
+#### Notebook metadata tagging
+
+All notebooks writing Delta tables use `write_delta()` with `PurviewMetadata` to attach table description and tags as Delta table properties. Microsoft Fabric auto-syncs these properties to Purview Hub for catalog and lineage.
+
+Example:
+
+```python
+from framework.libs.delta_ops import write_delta
+from framework.libs.purview_integration import PurviewMetadata
+
+metadata = PurviewMetadata.get_silver_metadata("silver_policies", has_scd2=True, pii=False)
+write_delta(
+    df=df_silver,
+    path="Tables/silver_policies",
+    mode="overwrite",
+    description=metadata["description"],
+    tags=metadata["tags"]
+)
+```
 
 ## 📖 Architecture Summary
 

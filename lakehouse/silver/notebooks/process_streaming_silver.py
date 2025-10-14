@@ -11,6 +11,7 @@ import sys
 
 sys.path.append("/Workspace/framework/libs")
 from delta_ops import read_delta, write_delta
+from purview_integration import PurviewMetadata
 from data_quality import check_nulls
 from logging_utils import get_logger, PipelineTimer
 
@@ -52,11 +53,14 @@ def main():
         logger.info(f"Writing {df_output.count()} validated streaming records to Silver")
         
         # Write to Silver streaming table
+        metadata = PurviewMetadata.get_silver_metadata("silver_realtime_claims", has_scd2=False, pii=False)
         write_delta(
             df=df_output,
             path="Tables/silver_realtime_claims",
             mode="overwrite",
-            partition_by=["ingestion_date"]
+            partition_by=["ingestion_date"],
+            description=metadata["description"],
+            tags=metadata["tags"]
         )
         
         logger.info("Streaming Silver processing completed")
