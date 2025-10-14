@@ -37,10 +37,12 @@ def write_delta(
     mode: str = "append",
     partition_by: Optional[List[str]] = None,
     merge_schema: bool = False,
-    overwrite_schema: bool = False
+    overwrite_schema: bool = False,
+    description: Optional[str] = None,
+    tags: Optional[Dict[str, str]] = None
 ) -> None:
     """
-    Write DataFrame to Delta table.
+    Write DataFrame to Delta table with Purview lineage metadata.
     
     Args:
         df: DataFrame to write
@@ -49,6 +51,8 @@ def write_delta(
         partition_by: List of partition columns
         merge_schema: Whether to merge schema
         overwrite_schema: Whether to overwrite schema
+        description: Table description for Purview metadata
+        tags: Custom tags for Purview classification (e.g., {"layer": "silver", "pii": "true"})
     """
     writer = df.write.format("delta").mode(mode)
     
@@ -60,6 +64,15 @@ def write_delta(
     
     if overwrite_schema:
         writer = writer.option("overwriteSchema", "true")
+    
+    # Add Purview metadata as Delta table properties
+    # Fabric auto-syncs these to Purview Hub
+    if description:
+        writer = writer.option("delta.description", description)
+    
+    if tags:
+        for key, value in tags.items():
+            writer = writer.option(f"delta.{key}", value)
     
     writer.save(path)
 

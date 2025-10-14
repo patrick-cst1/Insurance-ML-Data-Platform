@@ -34,6 +34,22 @@ key_vault:
     - cosmos_key
     - fabric_token
 
+purview:
+  enabled: true
+  # Microsoft Purview Hub is natively integrated in Fabric
+  # Auto-discovers Fabric assets (Lakehouses, KQL DB, Pipelines, Notebooks)
+  features:
+    data_catalog: true        # Auto-register all Delta tables
+    lineage_tracking: true    # Auto-track data flow (table→table, notebook→table)
+    metadata_sync: true       # Sync schema contracts to Purview
+    classification: false     # Manual classification via Purview UI
+  
+  # Custom properties for lineage metadata
+  custom_properties:
+    project: Insurance-ML-Platform
+    data_domain: Insurance
+    criticality: High
+
 deployment:
   lakehouse_paths:
     bronze: Tables/bronze_*

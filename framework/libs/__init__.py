@@ -35,6 +35,7 @@ from .great_expectations_validator import (
     validate_with_great_expectations,
     create_standard_expectations_for_table
 )
+from .purview_integration import PurviewMetadata
 
 __all__ = [
     # Delta operations
@@ -78,4 +79,6 @@ __all__ = [
     "GreatExpectationsValidator",
     "validate_with_great_expectations",
     "create_standard_expectations_for_table",
+    # Purview integration
+    "PurviewMetadata",
 ]

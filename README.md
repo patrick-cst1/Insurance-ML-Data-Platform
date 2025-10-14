@@ -40,8 +40,9 @@ This repository provides a **reusable, production-grade data engineering framewo
 | **NoSQL Enrichment** | External risk scores & underwriting data integration | Azure Cosmos DB |
 | **Point-in-Time Join** | SCD Type 2 + feature timestamps for temporal consistency | Delta Lake, Spark SQL |
 | **Data Quality** | Schema contracts, null checks, duplicate detection, freshness SLA, Great Expectations | Great Expectations, Custom validators |
+| **Data Governance** | Auto data catalog, lineage tracking, metadata management | Microsoft Purview Hub (native) |
 | **CI/CD Pipeline** | Automated deployment with approval gates & rollback | Azure DevOps, Fabric API |
-| **Monitoring** | Real-time lag, data quality scores, pipeline metrics | KQL, Monitoring Hub |
+| **Monitoring** | Real-time lag, data quality scores, pipeline metrics | KQL, Monitoring Hub, Custom Dashboards |
 
 ## 🏗️ Architecture
 
@@ -101,6 +102,7 @@ sequenceDiagram
 | **Data Quality** | Dual validation system: standard validators (inline) + Great Expectations (gate) | Custom validators (6 functions), Great Expectations |
 | **Secrets Management** | Secure credential storage | Azure Key Vault |
 | **Monitoring** | Pipeline metrics & alerting | Fabric Monitoring Hub, KQL Queries |
+| **Data Governance** | Data catalog, lineage tracking, metadata management | Microsoft Purview Hub (native Fabric integration) |
 
 ## 📂 Project Structure
 
@@ -500,6 +502,65 @@ pit_features = generate_point_in_time_view(
     as_of_timestamp="2025-01-15T00:00:00"
 )
 ```
+
+## 🔐 Data Governance with Purview Hub
+
+Microsoft Purview is **natively integrated** into Microsoft Fabric via **Purview Hub**, providing automatic data governance without external setup.
+
+### Purview Capabilities (Auto-Enabled in Fabric)
+
+| Feature | Description | How It Works |
+|---------|-------------|--------------|
+| **Data Catalog** | Auto-discovery of all Fabric assets | Lakehouses, Delta tables, KQL DB, Pipelines, Notebooks automatically registered |
+| **Lineage Tracking** | Automatic data flow visualization | Table→Table, Notebook→Table lineage auto-captured during transformations |
+| **Metadata Sync** | Schema documentation | Delta table schemas synced to Purview, schema contracts auto-documented |
+| **Search & Discovery** | Unified data asset search | Search across all tables, notebooks, pipelines in workspace |
+
+### Purview vs Custom Monitoring (Complementary Systems)
+
+This platform uses **both Purview Hub and custom monitoring dashboards** because they serve different purposes:
+
+| Aspect | Purview Hub (Governance) | Custom Dashboards (Operations) |
+|--------|--------------------------|-------------------------------|
+| **Purpose** | Data discovery, lineage, catalog | Real-time DQ monitoring, pipeline performance |
+| **Data Quality** | Basic profiling only | Custom DQ rules (null checks, duplicates, freshness SLA, Great Expectations) |
+| **Pipeline Metrics** | ❌ Not supported | ✅ Success rate, duration, streaming lag, throughput |
+| **Lineage** | ✅ Auto-tracked | ❌ Not applicable |
+| **Custom DQ Rules** | ❌ Not supported | ✅ 6 validators + Great Expectations (126 rules) |
+| **Access** | Purview Hub in workspace | `monitoring/dashboards/*.json` |
+
+**Decision**: **RETAIN both systems** because Purview cannot replace operational monitoring and custom DQ validation logic.
+
+### Accessing Purview Hub
+
+```bash
+# In Microsoft Fabric workspace:
+# 1. Navigate to workspace: Insurance-ML-Platform
+# 2. Click "Purview Hub" in left navigation
+# 3. View:
+#    - Data Catalog: All Delta tables (bronze_*, silver_*, gold_*)
+#    - Lineage: Data flow diagrams (auto-generated)
+#    - Metadata: Schema contracts, descriptions
+```
+
+### Purview Configuration
+
+Purview integration is configured in `devops/parameters/fabric.yml`:
+
+```yaml
+purview:
+  enabled: true
+  features:
+    data_catalog: true        # Auto-register Delta tables
+    lineage_tracking: true    # Auto-track transformations
+    metadata_sync: true       # Sync schema contracts
+  custom_properties:
+    project: Insurance-ML-Platform
+    data_domain: Insurance
+    criticality: High
+```
+
+**Note**: No additional setup required. Purview Hub is automatically available in all Fabric workspaces.
 
 ## 📖 Architecture Summary
 
