@@ -315,17 +315,20 @@ All testing and validation are performed directly in Microsoft Fabric workspace 
 ```bash
 # Standard DQ Checks (fast, always run in pipeline):
 # Execute: lakehouse/silver/notebooks/dq_checks.py
-# - Uses: data_quality.py validators (duplicates, nulls, freshness)
+# - Uses: data_quality.py validators (schema, nulls, duplicates, freshness, value_range, completeness)
 # - Output: Tables/dq_check_results
+# - Purpose: Inline validation during transformations, fail-fast checks
 
 # Great Expectations Checks (advanced, optional gate):
 # Execute: lakehouse/silver/notebooks/dq_checks_with_great_expectations.py
 # - Uses: great_expectations_validator.py
 # - Config: framework/config/great_expectations_rules.yaml
 # - Output: Tables/dq_check_results_ge
-# - Features: Regex, date formats, statistical profiling
+# - Features: Regex patterns, date formats, statistical profiling, mostly parameter
 
-# Note: Both systems are complementary, not mutually exclusive
+# Note: Both systems are complementary, not mutually exclusive.
+#       Standard validators run inline in clean_*.py notebooks.
+#       Great Expectations provides deep validation gate.
 ```
 
 **2. End-to-End Pipeline Testing:**
@@ -333,28 +336,46 @@ All testing and validation are performed directly in Microsoft Fabric workspace 
 # Execute master_batch_pipeline in Fabric to test complete flow:
 # Bronze ingestion → Silver cleaning → Silver DQ checks → 
 # Silver Cosmos enrichment → Gold feature engineering
-# (Streaming Silver adds processing_timestamp to conform with contract)
+# 
+# Validates:
+# - Data ingestion from CSV sources
+# - Schema contracts enforcement
+# - SCD Type 2 tracking (policies, claims, customers, agents)
+# - Point-in-time correctness for ML features
+# - Watermark-based incremental processing
 ```
 
 **3. Post-Deployment Validation:**
 ```bash
 # Execute in Fabric Workspace:
 # framework/scripts/validate_deployment.py
-# Validates all Delta tables (Bronze/Silver/Gold) and control tables
+# 
+# Validates:
+# - All Bronze tables (5 tables): policies, claims, customers, agents, realtime_events
+# - All Silver tables (6 tables): policies, claims, customers, agents, policies_enriched, realtime_claims
+# - All Gold tables (4 tables): claims_features, customer_features, risk_features, streaming_features
+# - Control tables (2 tables): watermark_control, dq_check_results
+# - Framework libraries imports
 ```
 
 **4. Maintenance Operations:**
 ```bash
 # Delta Lake optimization (OPTIMIZE, ZORDER, VACUUM):
 # Execute: framework/scripts/delta_maintenance.py
-
-# Note: optimize() and vacuum() include fallbacks using Spark SQL when runtime APIs are unavailable.
+# - Runs OPTIMIZE with ZORDER for query performance
+# - Executes VACUUM to clean old versions
+# - Configured retention: Bronze (7d), Silver (14d), Gold (30d)
+# - Note: Includes fallbacks using Spark SQL when runtime APIs unavailable
 
 # Initialize control tables (watermark + DQ results):
 # Execute: framework/setup/init_control_tables.py
+# - Creates watermark_control table (incremental processing)
+# - Creates dq_check_results table (validation tracking)
 
 # Generate DQ summary report:
 # Execute: monitoring/scripts/generate_data_quality_report.py
+# - Aggregates DQ check results across all tables
+# - Generates HTML/JSON report for stakeholders
 ```
 
 ## 📚 Framework Usage Examples
