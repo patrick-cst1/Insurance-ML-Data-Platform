@@ -13,6 +13,35 @@ from typing import Dict, List
 from pathlib import Path
 
 
+def py_to_ipynb_content(py_text: str) -> str:
+    """Convert a .py script into a minimal single-cell .ipynb JSON string."""
+    nb = {
+        "cells": [
+            {
+                "cell_type": "code",
+                "metadata": {},
+                "source": py_text.splitlines(True),
+                "outputs": [],
+                "execution_count": 0
+            }
+        ],
+        "metadata": {
+            "kernelspec": {
+                "display_name": "Python 3",
+                "language": "python",
+                "name": "python3"
+            },
+            "language_info": {
+                "name": "python",
+                "pygments_lexer": "ipython3",
+                "version": "3.9"
+            }
+        },
+        "nbformat": 4,
+        "nbformat_minor": 5
+    }
+    return json.dumps(nb)
+
 class FabricDeployer:
     """Deploy artifacts to Microsoft Fabric workspace."""
     
@@ -38,12 +67,18 @@ class FabricDeployer:
         """
         url = f"{self.base_url}/workspaces/{self.workspace_id}/notebooks"
         
-        # Read notebook content
+        # Read source and convert .py to .ipynb if necessary
         with open(notebook_path, 'r', encoding='utf-8') as f:
-            notebook_content = f.read()
+            src_text = f.read()
+        
+        if notebook_path.endswith('.ipynb'):
+            ipynb_text = src_text
+        else:
+            # Convert plain .py notebook/script to .ipynb with a single code cell
+            ipynb_text = py_to_ipynb_content(src_text)
         
         # Encode content
-        encoded_content = base64.b64encode(notebook_content.encode()).decode()
+        encoded_content = base64.b64encode(ipynb_text.encode()).decode()
         
         payload = {
             "displayName": display_name,
@@ -51,7 +86,7 @@ class FabricDeployer:
                 "format": "ipynb",
                 "parts": [
                     {
-                        "path": "notebook-content.py",
+                        "path": "notebook.ipynb",
                         "payload": encoded_content,
                         "payloadType": "InlineBase64"
                     }
@@ -113,7 +148,8 @@ def deploy_notebooks(deployer: FabricDeployer, notebook_dir: str):
     print("Deploying Notebooks")
     print("=" * 60)
     
-    notebook_paths = list(Path(notebook_dir).rglob("*.py"))
+    base = Path(notebook_dir)
+    notebook_paths = list(base.rglob("*.py")) + list(base.rglob("*.ipynb"))
     
     for notebook_path in notebook_paths:
         relative_path = notebook_path.relative_to(notebook_dir)
@@ -174,8 +210,11 @@ def main():
     for item in items:
         print(f"  - {item.get('displayName')} ({item.get('type')})")
     
-    # Deploy notebooks
-    deploy_notebooks(deployer, "lakehouse")
+    # Deploy notebooks from configured paths (including framework libs)
+    deployment_cfg = (config.get("deployment") or {})
+    notebook_paths = deployment_cfg.get("notebook_paths") or ["lakehouse"]
+    for nb_dir in notebook_paths:
+        deploy_notebooks(deployer, nb_dir)
     
     # Deploy pipelines
     deploy_pipelines(deployer, "pipelines")

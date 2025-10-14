@@ -117,7 +117,7 @@ Insurance-ML-Data-Platform/
 │   │   ├── schema_silver.yaml         # Silver layer schema
 │   │   └── schema_gold.yaml           # Gold layer schema
 │   │
-│   ├── libs/                          # Core Libraries (10 modules)
+│   ├── libs/                          # Core Libraries (9 modules)
 │   │   ├── __init__.py                # Module exports
 │   │   ├── delta_ops.py               # Delta Lake operations (read, write, merge, optimize)
 │   │   ├── data_quality.py            # DQ validation functions (6 validators)
@@ -126,8 +126,7 @@ Insurance-ML-Data-Platform/
 │   │   ├── schema_contracts.py        # Schema validation (load, validate, enforce)
 │   │   ├── watermarking.py            # Incremental processing (get, update, reset watermarks)
 │   │   ├── feature_utils.py           # Feature engineering (aggregations, SCD2, point-in-time)
-│   │   ├── logging_utils.py           # Logging & monitoring utilities
-│   │   └── alerting.py                # Data quality alerting service
+│   │   └── logging_utils.py           # Logging & monitoring utilities
 │   │
 │   ├── scripts/                       # Management Scripts (4 scripts)
 │   │   ├── __init__.py                # Module exports
@@ -274,7 +273,7 @@ python -c "import yaml; print(yaml.safe_load(open('devops/parameters/fabric.yml'
    git push origin main  # Triggers azure-pipelines-cd.yml
    # The CD pipeline runs:
    #   - framework/scripts/deploy_to_fabric.py (deploy notebooks/pipelines via Fabric API)
-   #   - framework/scripts/validate_deployment.py (post-deployment checks)
+   # Note: Post-deployment validations run inside Fabric workspace (see section below)
    # Option B: Manual upload via Fabric Git integration
    # Configure Fabric Workspace → Git integration → Azure DevOps repo
    ```
@@ -532,8 +531,6 @@ This platform implements a **production-ready medallion architecture** with the 
    - **Output**: `Tables/dq_check_results_ge`
    - **Advanced Features**: Regex patterns, date formats, statistical profiling, mostly parameter
    
-   **Alerting Service**: Configurable alerts for DQ failures (webhook integration ready)
-
 4. **Point-in-Time Correctness**
    - SCD Type 2 dimensions for historical tracking
    - Feature timestamps for temporal consistency in ML training

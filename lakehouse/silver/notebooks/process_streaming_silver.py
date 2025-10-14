@@ -5,7 +5,7 @@ This notebook processes events from Bronze realtime table or directly from KQL
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, window, row_number, current_timestamp
+from pyspark.sql.functions import col, window, row_number, current_timestamp, to_date
 from pyspark.sql.window import Window
 import sys
 
@@ -40,7 +40,9 @@ def main():
             .drop("rn")
         
         # Add processing timestamp for lineage and SLA tracking
-        df_output = df_dedup.withColumn("processing_timestamp", current_timestamp())
+        df_output = df_dedup \
+            .withColumn("processing_timestamp", current_timestamp()) \
+            .withColumn("ingestion_date", to_date(current_timestamp()))
         
         # Data quality check
         null_check = check_nulls(df_output, columns=["claim_id", "amount"], threshold=0.0)

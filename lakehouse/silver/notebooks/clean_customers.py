@@ -4,7 +4,7 @@ Silver Layer: Clean and standardize customers with SCD Type 2
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, trim, upper
+from pyspark.sql.functions import col, trim, upper, to_date
 import sys
 
 sys.path.append("/Workspace/framework/libs")
@@ -37,6 +37,7 @@ def main():
                 .filter(col("customer_id").isNotNull()) \
                 .withColumn("gender", upper(trim(col("gender")))) \
                 .withColumn("location", trim(col("location"))) \
+                .withColumn("join_date", to_date(col("join_date"))) \
                 .filter(col("age") > 0) \
                 .filter(col("age") < 120)
             

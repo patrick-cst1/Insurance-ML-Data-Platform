@@ -35,7 +35,6 @@ from .great_expectations_validator import (
     validate_with_great_expectations,
     create_standard_expectations_for_table
 )
-from .alerting import AlertingService, create_alerting_service
 
 __all__ = [
     # Delta operations
@@ -79,7 +78,4 @@ __all__ = [
     "GreatExpectationsValidator",
     "validate_with_great_expectations",
     "create_standard_expectations_for_table",
-    # Alerting
-    "AlertingService",
-    "create_alerting_service",
 ]

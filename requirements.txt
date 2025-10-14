@@ -4,7 +4,6 @@ delta-spark==3.0.0
 
 # Azure SDK
 azure-cosmos==4.5.1
-azure-cosmos-spark==4.25.0
 azure-identity==1.15.0
 azure-keyvault-secrets==4.7.0
 

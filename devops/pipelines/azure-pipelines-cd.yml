@@ -44,10 +44,6 @@ stages:
                     COSMOS_KEY: $(cosmos_key)
                 
                 - script: |
-                    python framework/scripts/validate_deployment.py
-                  displayName: 'Post-deployment validation'
-                
-                - script: |
                   echo "Deployment summary:"
                   echo "- Workspace: Insurance-ML-Platform"
                   echo "- Components: Lakehouses (3), KQL DB (1), Pipelines (2)"
