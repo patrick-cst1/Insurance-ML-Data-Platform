@@ -133,7 +133,7 @@ Insurance-ML-Data-Platform/
 │   │
 │   ├── scripts/                       # Management Scripts (4 scripts)
 │   │   ├── __init__.py                # Module exports
-│   │   ├── delta_maintenance.py       # OPTIMIZE, ZORDER, VACUUM operations (9 tables)
+│   │   ├── delta_maintenance.py       # OPTIMIZE, ZORDER, VACUUM operations (11 tables)
 │   │   ├── validate_deployment.py     # Post-deployment validation (all layers, 15 tables)
 │   │   └── deploy_to_fabric.py        # Fabric REST API deployment automation
 │   │

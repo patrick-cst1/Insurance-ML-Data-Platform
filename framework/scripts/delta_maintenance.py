@@ -37,6 +37,11 @@ MAINTENANCE_CONFIG: List[Dict] = [
         "vacuum_hours": 168
     },
     {
+        "table_path": "Tables/bronze_realtime_events",
+        "zorder_columns": ["ingestion_date"],
+        "vacuum_hours": 168
+    },
+    {
         "table_path": "Tables/silver_policies",
         "zorder_columns": ["customer_id", "is_current"],
         "vacuum_hours": 336  # 14 days (keep longer for SCD2)
@@ -49,6 +54,11 @@ MAINTENANCE_CONFIG: List[Dict] = [
     {
         "table_path": "Tables/silver_customers",
         "zorder_columns": ["customer_id", "is_current"],
+        "vacuum_hours": 336
+    },
+    {
+        "table_path": "Tables/silver_agents",
+        "zorder_columns": ["agent_id", "is_current"],
         "vacuum_hours": 336
     },
     {
