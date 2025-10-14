@@ -11,16 +11,16 @@ def get_logger(
     log_file_path: Optional[str] = None
 ) -> logging.Logger:
     """
-    獲取統一格式嘅 logger。
+    Get a logger with unified formatting.
     
     Args:
-        name: Logger 名稱
-        level: 日誌級別（DEBUG/INFO/WARNING/ERROR）
-        log_to_file: 是否寫入文件
-        log_file_path: 日誌文件路徑
+        name: Logger name
+        level: Log level (DEBUG/INFO/WARNING/ERROR)
+        log_to_file: Whether to write to file
+        log_file_path: Log file path
     
     Returns:
-        Logger 對象
+        Logger object
     """
     logger = logging.getLogger(name)
     
@@ -57,13 +57,13 @@ def log_dataframe_stats(
     show_schema: bool = False
 ) -> None:
     """
-    記錄 DataFrame 統計信息。
+    Log DataFrame statistics.
     
     Args:
-        logger: Logger 對象
+        logger: Logger object
         df: PySpark DataFrame
-        df_name: DataFrame 名稱
-        show_schema: 是否顯示 schema
+        df_name: DataFrame name
+        show_schema: Whether to display schema
     """
     row_count = df.count()
     col_count = len(df.columns)
@@ -82,14 +82,14 @@ def log_pipeline_step(
     duration_seconds: Optional[float] = None
 ) -> None:
     """
-    記錄 pipeline 步驟執行狀態。
+    Log pipeline step execution status.
     
     Args:
-        logger: Logger 對象
-        step_name: 步驟名稱
-        status: 狀態（START/SUCCESS/FAILED）
-        details: 詳細信息
-        duration_seconds: 執行時長（秒）
+        logger: Logger object
+        step_name: Step name
+        status: Status (START/SUCCESS/FAILED)
+        details: Detailed information
+        duration_seconds: Execution duration (seconds)
     """
     msg = f"Pipeline Step [{step_name}] - {status}"
     
@@ -106,7 +106,7 @@ def log_pipeline_step(
 
 
 class PipelineTimer:
-    """Pipeline 計時器上下文管理器。"""
+    """Pipeline timer context manager."""
     
     def __init__(self, logger: logging.Logger, step_name: str):
         self.logger = logger

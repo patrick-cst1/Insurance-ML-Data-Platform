@@ -129,22 +129,25 @@ Insurance-ML-Data-Platform/
 │   │   ├── ingest_policies.py
 │   │   ├── ingest_claims.py
 │   │   ├── ingest_customers.py
+│   │   ├── ingest_agents.py
 │   │   └── ingest_stream_events_to_delta.py
 │   │
 │   ├── silver/notebooks/              # Data cleansing & enrichment
 │   │   ├── clean_policies.py          # SCD2 implementation
 │   │   ├── clean_claims.py
 │   │   ├── clean_customers.py
-│   │   └── enrich_from_cosmos.py      # Cosmos enrichment
+│   │   ├── dq_checks.py               # Data quality validation
+│   │   ├── enrich_from_cosmos.py      # Cosmos enrichment
+│   │   └── process_streaming_silver.py # Streaming data processing
 │   │
 │   └── gold/notebooks/                # ML feature engineering
 │       ├── create_claims_features.py  # Time-window aggregations
 │       ├── create_customer_features.py # Customer metrics
-│       └── create_risk_features.py    # Risk assessment
+│       ├── create_risk_features.py    # Risk assessment
+│       └── aggregate_streaming_features.py # Real-time feature aggregation
 │
 ├── streaming/                         # Real-time Assets
 │   ├── eventstream/
-│   │   ├── routes.json                # Event routing config
 │   │   └── outputs/                   # KQL & Lakehouse sinks
 │   │
 │   └── kql/                           # KQL Database
@@ -155,15 +158,15 @@ Insurance-ML-Data-Platform/
 │   ├── gold/
 │   │   └── gold_realtime_aggregation.json # Streaming feature aggregation
 │   └── orchestration/
-│       └── master_batch_pipeline.json     # Master batch orchestration
+│       └── master_batch_pipeline.json     # Master batch orchestration (Bronze→Silver→Gold)
 │
 ├── devops/                            # CI/CD
 │   ├── pipelines/
-│   │   ├── azure-pipelines-ci.yml     # Continuous integration
-│   │   └── azure-pipelines-cd.yml     # Unified deployment
+│   │   ├── azure-pipelines-ci.yml     # Continuous integration (PR validation, tests)
+│   │   └── azure-pipelines-cd.yml     # Continuous deployment (Fabric deployment)
 │   │
 │   └── parameters/
-│       └── fabric.yml                 # Fabric workspace configuration
+│       └── fabric.yml                 # Unified Fabric workspace configuration
 │
 ├── tests/                             # Testing
 │   ├── unit/                          # Unit tests

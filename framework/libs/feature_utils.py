@@ -12,17 +12,17 @@ def build_aggregation_features(
     agg_columns: Dict[str, List[str]]
 ) -> DataFrame:
     """
-    構建時間窗口聚合特徵（例如 30/90/365 天）。
+    Build time-window aggregation features (e.g., 30/90/365 days).
     
     Args:
-        df: 原始事件 DataFrame
-        entity_keys: 實體鍵列表（例如 customer_id）
-        timestamp_column: 時間戳欄位
-        aggregation_windows: 窗口列表（天數）
-        agg_columns: 聚合欄位與函數映射（例如 {"claim_amount": ["sum", "avg", "count"]}）
+        df: Source event DataFrame
+        entity_keys: Entity key list (e.g., customer_id)
+        timestamp_column: Timestamp column name
+        aggregation_windows: Window list (in days)
+        agg_columns: Aggregation column and function mapping (e.g., {"claim_amount": ["sum", "avg", "count"]})
     
     Returns:
-        特徵 DataFrame
+        Feature DataFrame
     """
     from pyspark.sql.functions import current_date
     
@@ -69,18 +69,18 @@ def generate_point_in_time_view(
     as_of_timestamp: Optional[str] = None
 ) -> DataFrame:
     """
-    生成 point-in-time 正確嘅特徵視圖（支援 SCD2）。
+    Generate point-in-time correct feature view (supports SCD Type 2).
     
     Args:
-        feature_df: 特徵表 DataFrame（含 valid_from/valid_to）
-        entity_keys: 實體鍵
-        event_time_column: 事件時間欄位
-        valid_from_column: 有效起始時間欄位
-        valid_to_column: 有效結束時間欄位（NULL 表示當前有效）
-        as_of_timestamp: 指定時間點（None 表示當前）
+        feature_df: Feature table DataFrame (with valid_from/valid_to columns)
+        entity_keys: Entity keys
+        event_time_column: Event time column name
+        valid_from_column: Valid from timestamp column
+        valid_to_column: Valid to timestamp column (NULL indicates currently valid)
+        as_of_timestamp: Specific point in time (None for current)
     
     Returns:
-        Point-in-time 特徵 DataFrame
+        Point-in-time feature DataFrame
     """
     if as_of_timestamp:
         condition = f"({event_time_column} >= {valid_from_column}) AND " \
@@ -108,16 +108,16 @@ def create_scd2_features(
     hash_columns: Optional[List[str]] = None
 ) -> DataFrame:
     """
-    為維度表創建 SCD Type 2 欄位（is_current、effective_from/to）。
+    Create SCD Type 2 columns for dimension tables (is_current, effective_from/to).
     
     Args:
-        df: 原始維度 DataFrame
-        entity_keys: 實體鍵
-        timestamp_column: 變更時間戳欄位
-        hash_columns: 用於檢測變更嘅欄位（None 表示全部）
+        df: Source dimension DataFrame
+        entity_keys: Entity keys
+        timestamp_column: Change timestamp column
+        hash_columns: Columns used for change detection (None for all columns)
     
     Returns:
-        含 SCD2 欄位嘅 DataFrame
+        DataFrame with SCD2 columns
     """
     from pyspark.sql.functions import lead, hash as spark_hash
     
@@ -146,14 +146,14 @@ def add_feature_metadata(
     feature_timestamp: Optional[str] = None
 ) -> DataFrame:
     """
-    為特徵表添加元數據欄位（feature_timestamp、load_timestamp）。
+    Add metadata columns to feature table (feature_timestamp, load_timestamp).
     
     Args:
-        df: 特徵 DataFrame
-        feature_timestamp: 特徵計算時間（None 表示當前）
+        df: Feature DataFrame
+        feature_timestamp: Feature computation time (None for current timestamp)
     
     Returns:
-        含元數據欄位嘅 DataFrame
+        DataFrame with metadata columns
     """
     from pyspark.sql.functions import current_timestamp, lit
     
