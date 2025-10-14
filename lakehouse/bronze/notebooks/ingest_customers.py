@@ -1,4 +1,8 @@
 # Databricks notebook source
+"""
+Bronze Layer: Ingest Customers CSV to Delta
+"""
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import current_timestamp, lit, to_date
 import sys

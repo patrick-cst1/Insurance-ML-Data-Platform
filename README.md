@@ -112,12 +112,12 @@ Insurance-ML-Data-Platform/
 ├── framework/                          # Reusable Framework
 │   ├── __init__.py                    # Framework package initialization
 │   │
-│   ├── config/                        # Configuration Files (16 YAML files)
-│   │   ├── schema_contracts/          # YAML schema definitions (15 tables, used in Bronze layer validation)
+│   ├── config/                        # Configuration Files
+│   │   ├── schema_contracts/          # YAML schema definitions (16 tables, used in Bronze layer validation)
 │   │   │   ├── bronze_*.yaml          # Bronze layer schemas (5 files)
 │   │   │   ├── silver_*.yaml          # Silver layer schemas (6 files)
 │   │   │   └── gold_*.yaml            # Gold layer schemas (4 files)
-│   │   └── great_expectations_rules.yaml  # Great Expectations validation rules (6 tables)
+│   │   └── great_expectations_rules.yaml  # Great Expectations validation rules (8 tables)
 │   │
 │   ├── libs/                          # Core Libraries (10 modules)
 │   │   ├── __init__.py                # Module exports (all functions)
@@ -623,8 +623,8 @@ This platform implements a **production-ready medallion architecture** with the 
    - **Output**: `Tables/dq_check_results`
    
    **System 2: Great Expectations (`great_expectations_validator.py`)**
-   - **Purpose**: Advanced statistical validation gate for Silver layer
-   - **Config**: `framework/config/great_expectations_rules.yaml` (122 lines, 6 tables: silver_policies, silver_claims, silver_customers, silver_agents, silver_policies_enriched, silver_realtime_claims)
+   - **Purpose**: Advanced statistical validation gate for Silver and Gold layers
+   - **Config**: `framework/config/great_expectations_rules.yaml` (151 lines, 8 tables: silver_policies, silver_claims, silver_customers, silver_agents, silver_policies_enriched, silver_realtime_claims, gold_claims_features, gold_customer_features, gold_risk_features)
    - **Used by**: `dq_checks_with_great_expectations.py` (optional deep validation)
    - **Output**: `Tables/dq_check_results_ge`
    - **Advanced Features**: Regex patterns, date formats, statistical profiling, mostly parameter, strftime validation

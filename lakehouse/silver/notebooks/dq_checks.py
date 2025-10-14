@@ -40,6 +40,13 @@ DQ_RULES = {
         "null_threshold": 0.01,
         "freshness_hours": 24,
         "timestamp_column": "ingestion_timestamp"
+    },
+    "silver_agents": {
+        "key_columns": ["agent_id"],
+        "required_columns": ["agent_id", "name"],
+        "null_threshold": 0.01,
+        "freshness_hours": 24,
+        "timestamp_column": "ingestion_timestamp"
     }
 }
 

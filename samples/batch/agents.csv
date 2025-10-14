@@ -1,9 +1,9 @@
-agent_id,name,region,performance_rating
-A1,Tom Harris,Northeast,4.5
-A2,Alice Cooper,West,4.8
-A3,Bob Richards,South,4.2
-A4,Carol White,Midwest,4.7
-A5,Daniel Lee,West,4.3
-A6,Emma Thompson,Northeast,4.9
-A7,Frank Miller,South,4.1
-A8,Grace Kim,Midwest,4.6
+agent_id,name,agent_type,region,status,performance_rating,joined_date
+A1,Tom Harris,DIRECT,Northeast,ACTIVE,4.5,2022-01-15
+A2,Alice Cooper,BROKER,West,ACTIVE,4.8,2021-03-20
+A3,Bob Richards,AGENCY,South,ACTIVE,4.2,2023-06-10
+A4,Carol White,DIRECT,Midwest,ACTIVE,4.7,2022-09-05
+A5,Daniel Lee,BROKER,West,ACTIVE,4.3,2023-02-18
+A6,Emma Thompson,DIRECT,Northeast,ACTIVE,4.9,2021-11-30
+A7,Frank Miller,AGENCY,South,ON_LEAVE,4.1,2023-04-22
+A8,Grace Kim,BROKER,Midwest,ACTIVE,4.6,2022-07-14
