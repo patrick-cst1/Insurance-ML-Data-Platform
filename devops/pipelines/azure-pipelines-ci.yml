@@ -47,5 +47,5 @@ jobs:
         condition: succeededOrFailed()
       
       - script: |
-          python -c "import yaml; [yaml.safe_load(open(f)) for f in ['framework/config/medallion.yaml', 'framework/config/cosmos.yaml', 'framework/config/eventstream.yaml']]"
+          python -c "import yaml; [yaml.safe_load(open(f)) for f in ['framework/config/cosmos.yaml', 'framework/config/eventstream.yaml', 'devops/parameters/fabric.yml']]"
         displayName: 'Validate YAML configs'

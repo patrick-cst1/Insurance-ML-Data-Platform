@@ -109,11 +109,8 @@ Insurance-ML-Data-Platform/
 │
 ├── framework/                          # Reusable Framework
 │   ├── config/                        # Configuration Files
-│   │   ├── medallion.yaml             # Layer definitions
 │   │   ├── cosmos.yaml                # Cosmos DB settings
-│   │   ├── eventstream.yaml           # Streaming config
-│   │   ├── environment.dev.yaml       # Dev environment
-│   │   └── environment.prod.yaml      # Prod environment
+│   │   └── eventstream.yaml           # Streaming config
 │   │
 │   └── libs/                          # Core Libraries
 │       ├── delta_ops.py               # Delta Lake operations
@@ -125,26 +122,9 @@ Insurance-ML-Data-Platform/
 │       └── logging_utils.py           # Logging & monitoring
 │
 ├── lakehouse/                         # Medallion Notebooks
-│   ├── bronze/notebooks/              # Raw data ingestion
-│   │   ├── ingest_policies.py
-│   │   ├── ingest_claims.py
-│   │   ├── ingest_customers.py
-│   │   ├── ingest_agents.py
-│   │   └── ingest_stream_events_to_delta.py
-│   │
-│   ├── silver/notebooks/              # Data cleansing & enrichment
-│   │   ├── clean_policies.py          # SCD2 implementation
-│   │   ├── clean_claims.py
-│   │   ├── clean_customers.py
-│   │   ├── dq_checks.py               # Data quality validation
-│   │   ├── enrich_from_cosmos.py      # Cosmos enrichment
-│   │   └── process_streaming_silver.py # Streaming data processing
-│   │
-│   └── gold/notebooks/                # ML feature engineering
-│       ├── create_claims_features.py  # Time-window aggregations
-│       ├── create_customer_features.py # Customer metrics
-│       ├── create_risk_features.py    # Risk assessment
-│       └── aggregate_streaming_features.py # Real-time feature aggregation
+│   ├── bronze/notebooks/              # Raw data ingestion (to be created in Fabric)
+│   ├── silver/notebooks/              # Data cleansing & enrichment (to be created in Fabric)
+│   └── gold/notebooks/                # ML feature engineering (to be created in Fabric)
 │
 ├── streaming/                         # Real-time Assets
 │   ├── eventstream/
@@ -202,7 +182,7 @@ cd Insurance-ML-Data-Platform
 pip install -r requirements.txt
 
 # Verify configuration
-python -c "import yaml; print(yaml.safe_load(open('framework/config/medallion.yaml')))"
+python -c "import yaml; print(yaml.safe_load(open('devops/parameters/fabric.yml')))"
 ```
 
 ### Deployment Steps
