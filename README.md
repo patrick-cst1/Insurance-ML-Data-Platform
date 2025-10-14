@@ -227,7 +227,7 @@ cd Insurance-ML-Data-Platform
 python -c "import yaml; print(yaml.safe_load(open('devops/parameters/fabric.yml')))"
 ```
 
-**Note**: All development and testing are performed directly in Microsoft Fabric workspace. Notebooks import framework libraries via `sys.path.append("/Workspace/framework/libs")`. No local development setup required.
+**Note**: All development and testing are performed directly in Microsoft Fabric workspace. Notebooks import framework libraries via `sys.path.append("/Workspace/framework/libs")`. If running from a Git-integrated workspace, relative imports also work (e.g. `sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))`). No local development setup required.
 
 ### Deployment Steps
 
@@ -276,6 +276,8 @@ python -c "import yaml; print(yaml.safe_load(open('devops/parameters/fabric.yml'
    git push origin main  # Triggers azure-pipelines-cd.yml
    # The CD pipeline runs:
    #   - framework/scripts/deploy_to_fabric.py (deploy notebooks/pipelines via Fabric API)
+   #     - Auto-converts pipeline activities from "DatabricksNotebook" to Fabric "Notebook"
+   #       and maps notebookName from the file stem (e.g., clean_policies)
    # Note: Post-deployment validations run inside Fabric workspace (see section below)
    # Option B: Manual upload via Fabric Git integration
    # Configure Fabric Workspace → Git integration → Azure DevOps repo
@@ -324,7 +326,7 @@ All testing and validation are performed directly in Microsoft Fabric workspace 
 # Great Expectations Checks (advanced, optional gate):
 # Execute: lakehouse/silver/notebooks/dq_checks_with_great_expectations.py
 # - Uses: great_expectations_validator.py
-# - Config: framework/config/great_expectations_rules.yaml
+# - Config: framework/config/great_expectations_rules.yaml (with path fallback if /Workspace is not mounted)
 # - Output: Tables/dq_check_results_ge
 # - Features: Regex patterns, date formats, statistical profiling, mostly parameter
 

@@ -111,7 +111,7 @@ gold_risk_features:
     - expectation_type: expect_column_values_to_not_be_null
       column: customer_id
     - expectation_type: expect_column_values_to_be_between
-      column: risk_score
+      column: overall_risk_score
       min_value: 0
       max_value: 100
       mostly: 0.95

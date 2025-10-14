@@ -152,8 +152,8 @@ def deploy_notebooks(deployer: FabricDeployer, notebook_dir: str):
     notebook_paths = list(base.rglob("*.py")) + list(base.rglob("*.ipynb"))
     
     for notebook_path in notebook_paths:
-        relative_path = notebook_path.relative_to(notebook_dir)
-        display_name = str(relative_path).replace("\\", "_").replace("/", "_").replace(".py", "")
+        # Use file stem as display name to align with pipeline Notebook activity references
+        display_name = notebook_path.stem
         
         deployer.upload_notebook(str(notebook_path), display_name)
 
@@ -169,7 +169,21 @@ def deploy_pipelines(deployer: FabricDeployer, pipeline_dir: str):
     for pipeline_file in pipeline_files:
         with open(pipeline_file, 'r') as f:
             pipeline_def = json.load(f)
-        
+
+        # Normalize activities for Fabric compatibility
+        activities = pipeline_def.get("activities", [])
+        for act in activities:
+            act_type = act.get("type")
+            if act_type == "DatabricksNotebook":
+                # Convert to Fabric Notebook activity
+                type_props = act.get("typeProperties", {})
+                nb_path = type_props.get("notebookPath", "")
+                # Derive display name from path (file stem)
+                # Examples: "/lakehouse/silver/notebooks/clean_policies" -> "clean_policies"
+                nb_name = nb_path.strip("/").split("/")[-1] if nb_path else act.get("name", "notebook")
+                act["type"] = "Notebook"
+                act["typeProperties"] = {"notebookName": nb_name}
+
         display_name = pipeline_def.get("name", pipeline_file.stem)
         deployer.create_pipeline(pipeline_def, display_name)
 

@@ -18,7 +18,10 @@ from logging_utils import get_logger, PipelineTimer
 # COMMAND ----------
 
 # Configuration
-GE_RULES_PATH = "/Workspace/framework/config/great_expectations_rules.yaml"
+GE_RULES_CANDIDATES = [
+    "/Workspace/framework/config/great_expectations_rules.yaml",
+    "framework/config/great_expectations_rules.yaml"
+]
 DQ_RESULTS_PATH = "Tables/dq_check_results_ge"
 
 # COMMAND ----------
@@ -27,6 +30,14 @@ def load_ge_rules(rules_path: str) -> dict:
     """Load Great Expectations rules from YAML."""
     with open(rules_path, 'r') as f:
         return yaml.safe_load(f)
+
+def load_ge_rules_with_fallback(paths: list) -> dict:
+    for p in paths:
+        try:
+            return load_ge_rules(p)
+        except Exception:
+            continue
+    raise FileNotFoundError("great_expectations_rules.yaml not found in candidates: " + ",".join(paths))
 
 # COMMAND ----------
 
@@ -95,8 +106,7 @@ def main():
     with PipelineTimer(logger, "dq_checks_great_expectations"):
         
         # Load GE rules
-        logger.info(f"Loading Great Expectations rules from {GE_RULES_PATH}")
-        ge_rules = load_ge_rules(GE_RULES_PATH)
+        ge_rules = load_ge_rules_with_fallback(GE_RULES_CANDIDATES)
         
         all_results = []
         

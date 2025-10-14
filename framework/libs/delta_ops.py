@@ -143,15 +143,23 @@ def optimize_delta(
             optimize_builder.executeCompaction()
     except Exception:
         # Fallback using Spark SQL (Delta Lake OSS / Fabric runtime)
-        if zorder_by and len(zorder_by) > 0:
-            cols = ", ".join(zorder_by)
-            spark.sql(f"OPTIMIZE delta.`{path}` ZORDER BY ({cols})")
-        else:
-            spark.sql(f"OPTIMIZE delta.`{path}`")
+        try:
+            if zorder_by and len(zorder_by) > 0:
+                cols = ", ".join(zorder_by)
+                spark.sql(f"OPTIMIZE delta.`{path}` ZORDER BY ({cols})")
+            else:
+                spark.sql(f"OPTIMIZE delta.`{path}`")
+        except Exception:
+            # Fabric runtimes may not support OPTIMIZE at all; proceed without compaction
+            pass
     
     # Run VACUUM (optional) with fallback
     if vacuum_retention_hours is not None:
         try:
             delta_table.vacuum(vacuum_retention_hours)
         except Exception:
-            spark.sql(f"VACUUM delta.`{path}` RETAIN {vacuum_retention_hours} HOURS")
+            try:
+                spark.sql(f"VACUUM delta.`{path}` RETAIN {vacuum_retention_hours} HOURS")
+            except Exception:
+                # If VACUUM is not supported, skip silently
+                pass

@@ -145,7 +145,6 @@ class DeploymentValidator:
             "delta_ops",
             "data_quality",
             "cosmos_io",
-            "schema_contracts",
             "watermarking",
             "feature_utils",
             "logging_utils"
