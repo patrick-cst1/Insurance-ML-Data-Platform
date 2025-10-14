@@ -7,8 +7,10 @@ Creates time-window aggregations from streaming events
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, count, sum as spark_sum, avg, window, expr
 import sys
+import os
 
 sys.path.append("/Workspace/framework/libs")
+sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
 from delta_ops import read_delta, write_delta
 from purview_integration import PurviewMetadata
 from feature_utils import add_feature_metadata

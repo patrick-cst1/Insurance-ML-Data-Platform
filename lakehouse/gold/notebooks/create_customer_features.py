@@ -6,8 +6,10 @@ Gold Layer: Create customer dimension features
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, count, sum as spark_sum, avg, datediff, current_date, when
 import sys
+import os
 
 sys.path.append("/Workspace/framework/libs")
+sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
 from delta_ops import read_delta, write_delta
 from purview_integration import PurviewMetadata
 from feature_utils import add_feature_metadata

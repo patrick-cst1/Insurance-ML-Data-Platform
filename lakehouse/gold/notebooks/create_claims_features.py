@@ -6,8 +6,10 @@ Gold Layer: Create ML-ready claims features with point-in-time correctness
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, datediff, current_date
 import sys
+import os
 
 sys.path.append("/Workspace/framework/libs")
+sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
 from delta_ops import read_delta, write_delta
 from purview_integration import PurviewMetadata
 from feature_utils import build_aggregation_features, add_feature_metadata

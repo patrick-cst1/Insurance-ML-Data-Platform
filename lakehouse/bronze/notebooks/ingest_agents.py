@@ -2,8 +2,10 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import current_timestamp, lit, to_date
 import sys
+import os
 
 sys.path.append("/Workspace/framework/libs")
+sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
 from delta_ops import write_delta
 from logging_utils import get_logger, PipelineTimer
 

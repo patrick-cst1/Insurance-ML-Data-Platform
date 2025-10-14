@@ -112,17 +112,14 @@ Insurance-ML-Data-Platform/
 ├── framework/                          # Reusable Framework
 │   ├── __init__.py                    # Framework package initialization
 │   │
-│   ├── config/                        # Configuration Files (21 YAML files)
+│   ├── config/                        # Configuration Files (18 YAML files)
 │   │   ├── schema_contracts/          # YAML schema definitions (15 tables)
 │   │   │   ├── bronze_*.yaml          # Bronze layer schemas (5 files)
 │   │   │   ├── silver_*.yaml          # Silver layer schemas (6 files)
 │   │   │   └── gold_*.yaml            # Gold layer schemas (4 files)
 │   │   ├── cosmos.yaml                # Cosmos DB settings
 │   │   ├── eventstream.yaml           # Streaming config
-│   │   ├── great_expectations_rules.yaml  # Great Expectations validation rules (6 tables)
-│   │   ├── schema_bronze.yaml         # Bronze layer schema
-│   │   ├── schema_silver.yaml         # Silver layer schema
-│   │   └── schema_gold.yaml           # Gold layer schema
+│   │   └── great_expectations_rules.yaml  # Great Expectations validation rules (6 tables)
 │   │
 │   ├── libs/                          # Core Libraries (10 modules)
 │   │   ├── __init__.py                # Module exports (all functions)
@@ -136,7 +133,7 @@ Insurance-ML-Data-Platform/
 │   │   ├── logging_utils.py           # Logging & monitoring utilities (logger, timer, stats)
 │   │   └── purview_integration.py     # Purview metadata helpers (standardized tags)
 │   │
-│   ├── scripts/                       # Management Scripts (3 scripts)
+│   ├── scripts/                       # Management Scripts (4 scripts)
 │   │   ├── __init__.py                # Module exports
 │   │   ├── delta_maintenance.py       # OPTIMIZE, ZORDER, VACUUM operations (9 tables)
 │   │   ├── validate_deployment.py     # Post-deployment validation (all layers, 15 tables)
@@ -188,7 +185,7 @@ Insurance-ML-Data-Platform/
 │   ├── gold/
 │   │   └── gold_realtime_aggregation.json # Streaming feature aggregation pipeline
 │   └── orchestration/
-│       └── master_batch_pipeline.json     # Master batch orchestration (10 activities)
+│       └── master_batch_pipeline.json     # Master batch orchestration (13 activities)
 │
 ├── devops/                            # CI/CD
 │   ├── pipelines/

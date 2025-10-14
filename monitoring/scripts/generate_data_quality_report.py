@@ -10,6 +10,7 @@ import os
 from datetime import datetime
 
 sys.path.append("/Workspace/framework/libs")
+sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
 from delta_ops import read_delta
 from logging_utils import get_logger
 

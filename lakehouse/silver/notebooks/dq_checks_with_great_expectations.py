@@ -7,10 +7,12 @@ Enhanced validation using Great Expectations framework
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import current_timestamp
 import sys
+import os
 import yaml
 import json
 
 sys.path.append("/Workspace/framework/libs")
+sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
 from delta_ops import read_delta, write_delta
 from great_expectations_validator import validate_with_great_expectations
 from logging_utils import get_logger, PipelineTimer

@@ -6,8 +6,10 @@ Silver Layer: Clean and standardize policies with SCD2
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, trim, upper, when, coalesce
 import sys
+import os
 
 sys.path.append("/Workspace/framework/libs")
+sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
 from delta_ops import read_delta, write_delta
 from purview_integration import PurviewMetadata
 from data_quality import validate_schema, check_nulls, detect_duplicates

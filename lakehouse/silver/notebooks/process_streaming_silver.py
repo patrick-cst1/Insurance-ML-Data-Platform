@@ -8,8 +8,10 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, window, row_number, current_timestamp, to_date
 from pyspark.sql.window import Window
 import sys
+import os
 
 sys.path.append("/Workspace/framework/libs")
+sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
 from delta_ops import read_delta, write_delta
 from purview_integration import PurviewMetadata
 from data_quality import check_nulls

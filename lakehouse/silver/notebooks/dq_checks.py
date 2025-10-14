@@ -7,9 +7,11 @@ Runs validation suite across all Silver tables and logs results
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, current_timestamp
 import sys
+import os
 import json
 
 sys.path.append("/Workspace/framework/libs")
+sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
 from delta_ops import read_delta, write_delta
 from data_quality import validate_schema, check_nulls, detect_duplicates, check_freshness
 from logging_utils import get_logger, PipelineTimer
