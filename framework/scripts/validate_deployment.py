@@ -21,7 +21,7 @@ class DeploymentValidator:
         self.logger = logger
         self.validation_results = []
     
-    def validate_table_exists(self, table_path: str, table_name: str) -> Dict:
+    def validate_table_exists(self, table_path: str, table_name: str, optional: bool = False) -> Dict:
         """Validate that a Delta table exists and is readable."""
         try:
             df = self.spark.read.format("delta").load(table_path)
@@ -33,15 +33,26 @@ class DeploymentValidator:
                 "table": table_name,
                 "status": "SUCCESS",
                 "row_count": row_count,
-                "column_count": col_count
+                "column_count": col_count,
+                "optional": optional
             }
         except Exception as e:
-            self.logger.error(f"✗ {table_name}: {str(e)}")
-            return {
-                "table": table_name,
-                "status": "FAILED",
-                "error": str(e)
-            }
+            if optional:
+                self.logger.warning(f"⚠ {table_name} (optional): {str(e)}")
+                return {
+                    "table": table_name,
+                    "status": "SKIPPED",
+                    "error": str(e),
+                    "optional": True
+                }
+            else:
+                self.logger.error(f"✗ {table_name}: {str(e)}")
+                return {
+                    "table": table_name,
+                    "status": "FAILED",
+                    "error": str(e),
+                    "optional": False
+                }
     
     def validate_bronze_layer(self) -> List[Dict]:
         """Validate Bronze layer tables."""
@@ -50,16 +61,16 @@ class DeploymentValidator:
         self.logger.info("=" * 60)
         
         bronze_tables = [
-            ("Tables/bronze_policies", "bronze_policies"),
-            ("Tables/bronze_claims", "bronze_claims"),
-            ("Tables/bronze_customers", "bronze_customers"),
-            ("Tables/bronze_agents", "bronze_agents"),
-            ("Tables/bronze_realtime_events", "bronze_realtime_events")
+            ("Tables/bronze_policies", "bronze_policies", False),
+            ("Tables/bronze_claims", "bronze_claims", False),
+            ("Tables/bronze_customers", "bronze_customers", False),
+            ("Tables/bronze_agents", "bronze_agents", False),
+            ("Tables/bronze_realtime_events", "bronze_realtime_events", True)  # Optional - streaming
         ]
         
         results = []
-        for table_path, table_name in bronze_tables:
-            result = self.validate_table_exists(table_path, table_name)
+        for table_path, table_name, optional in bronze_tables:
+            result = self.validate_table_exists(table_path, table_name, optional)
             results.append(result)
         
         return results
@@ -71,17 +82,17 @@ class DeploymentValidator:
         self.logger.info("=" * 60)
         
         silver_tables = [
-            ("Tables/silver_policies", "silver_policies"),
-            ("Tables/silver_claims", "silver_claims"),
-            ("Tables/silver_customers", "silver_customers"),
-            ("Tables/silver_agents", "silver_agents"),
-            ("Tables/silver_policies_enriched", "silver_policies_enriched"),
-            ("Tables/silver_realtime_claims", "silver_realtime_claims")
+            ("Tables/silver_policies", "silver_policies", False),
+            ("Tables/silver_claims", "silver_claims", False),
+            ("Tables/silver_customers", "silver_customers", False),
+            ("Tables/silver_agents", "silver_agents", False),
+            ("Tables/silver_policies_enriched", "silver_policies_enriched", True),  # Optional - Cosmos
+            ("Tables/silver_realtime_claims", "silver_realtime_claims", True)  # Optional - streaming
         ]
         
         results = []
-        for table_path, table_name in silver_tables:
-            result = self.validate_table_exists(table_path, table_name)
+        for table_path, table_name, optional in silver_tables:
+            result = self.validate_table_exists(table_path, table_name, optional)
             
             # Additional validation for SCD2 tables
             if result["status"] == "SUCCESS" and "silver_policies" in table_name:
@@ -104,15 +115,15 @@ class DeploymentValidator:
         self.logger.info("=" * 60)
         
         gold_tables = [
-            ("Tables/gold_claims_features", "gold_claims_features"),
-            ("Tables/gold_customer_features", "gold_customer_features"),
-            ("Tables/gold_risk_features", "gold_risk_features"),
-            ("Tables/gold_streaming_features", "gold_streaming_features")
+            ("Tables/gold_claims_features", "gold_claims_features", False),
+            ("Tables/gold_customer_features", "gold_customer_features", False),
+            ("Tables/gold_risk_features", "gold_risk_features", False),
+            ("Tables/gold_streaming_features", "gold_streaming_features", True)  # Optional - streaming
         ]
         
         results = []
-        for table_path, table_name in gold_tables:
-            result = self.validate_table_exists(table_path, table_name)
+        for table_path, table_name, optional in gold_tables:
+            result = self.validate_table_exists(table_path, table_name, optional)
             results.append(result)
         
         return results
@@ -124,13 +135,13 @@ class DeploymentValidator:
         self.logger.info("=" * 60)
         
         control_tables = [
-            ("Tables/watermark_control", "watermark_control"),
-            ("Tables/dq_check_results", "dq_check_results")
+            ("Tables/watermark_control", "watermark_control", False),
+            ("Tables/dq_check_results", "dq_check_results", False)
         ]
         
         results = []
-        for table_path, table_name in control_tables:
-            result = self.validate_table_exists(table_path, table_name)
+        for table_path, table_name, optional in control_tables:
+            result = self.validate_table_exists(table_path, table_name, optional)
             results.append(result)
         
         return results
@@ -168,13 +179,15 @@ class DeploymentValidator:
         """Generate validation summary."""
         total = len(all_results)
         successful = sum(1 for r in all_results if r["status"] == "SUCCESS")
-        failed = total - successful
+        skipped = sum(1 for r in all_results if r["status"] == "SKIPPED")
+        failed = sum(1 for r in all_results if r["status"] == "FAILED")
         
         return {
             "total_validations": total,
             "successful": successful,
+            "skipped": skipped,
             "failed": failed,
-            "success_rate": (successful / total * 100) if total > 0 else 0
+            "success_rate": ((successful + skipped) / total * 100) if total > 0 else 0
         }
     
     def run_full_validation(self):
@@ -202,6 +215,7 @@ class DeploymentValidator:
         self.logger.info("=" * 60)
         self.logger.info(f"Total Validations: {summary['total_validations']}")
         self.logger.info(f"Successful: {summary['successful']}")
+        self.logger.info(f"Skipped (Optional): {summary['skipped']}")
         self.logger.info(f"Failed: {summary['failed']}")
         self.logger.info(f"Success Rate: {summary['success_rate']:.2f}%")
         self.logger.info("=" * 60)
@@ -212,6 +226,9 @@ class DeploymentValidator:
             self.logger.error(f"Failed items: {failed_items}")
             return False
         else:
+            if summary['skipped'] > 0:
+                skipped_items = [r['table'] for r in all_results if r['status'] == 'SKIPPED']
+                self.logger.info(f"Optional components skipped: {skipped_items}")
             self.logger.info("\n✓ DEPLOYMENT VALIDATION PASSED")
             return True
 

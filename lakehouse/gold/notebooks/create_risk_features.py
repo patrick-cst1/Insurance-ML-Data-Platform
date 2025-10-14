@@ -22,7 +22,14 @@ def main():
     with PipelineTimer(logger, "create_risk_features"):
         
         # Read enriched policies (with Cosmos risk scores) and claims features
-        df_policies = read_delta(spark, "Tables/silver_policies_enriched").filter(col("is_current") == lit(True))
+        # Fallback to silver_policies if enriched table doesn't exist
+        try:
+            df_policies = read_delta(spark, "Tables/silver_policies_enriched").filter(col("is_current") == lit(True))
+            logger.info("Using enriched policies with Cosmos data")
+        except Exception:
+            logger.warning("silver_policies_enriched not found, using silver_policies")
+            df_policies = read_delta(spark, "Tables/silver_policies").filter(col("is_current") == lit(True))
+        
         df_claims_features = read_delta(spark, "Tables/gold_claims_features")
         
         # Join claims features with policies

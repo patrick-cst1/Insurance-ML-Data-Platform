@@ -1,7 +1,7 @@
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, count, isnan, when, max as spark_max, current_timestamp, datediff
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import logging
 
 
@@ -9,7 +9,7 @@ def validate_schema(
     df: DataFrame,
     expected_schema: Dict[str, str],
     strict: bool = True
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """
     Validate DataFrame schema against expected schema.
     
@@ -50,7 +50,7 @@ def check_nulls(
     df: DataFrame,
     columns: Optional[List[str]] = None,
     threshold: float = 0.0
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """
     Check null value ratios.
     
@@ -69,7 +69,14 @@ def check_nulls(
     null_ratios = {}
     
     for col_name in check_cols:
-        null_count = df.filter(col(col_name).isNull() | isnan(col(col_name))).count()
+        # Check data type to avoid isnan() on non-numeric columns
+        col_type = dict(df.dtypes)[col_name] if col_name in dict(df.dtypes) else None
+        
+        if col_type in ['double', 'float', 'decimal']:
+            null_count = df.filter(col(col_name).isNull() | isnan(col(col_name))).count()
+        else:
+            null_count = df.filter(col(col_name).isNull()).count()
+        
         null_ratio = null_count / total_count if total_count > 0 else 0.0
         
         null_counts[col_name] = null_count
@@ -90,7 +97,7 @@ def detect_duplicates(
     df: DataFrame,
     key_columns: List[str],
     threshold: int = 0
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """
     Detect duplicate records.
     
@@ -122,7 +129,7 @@ def check_freshness(
     df: DataFrame,
     timestamp_column: str,
     max_age_hours: int = 24
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """
     Check data freshness (time since latest record).
     
@@ -167,8 +174,8 @@ def check_freshness(
 
 def check_value_range(
     df: DataFrame,
-    checks: List[Dict[str, any]]
-) -> Dict[str, any]:
+    checks: List[Dict[str, Any]]
+) -> Dict[str, Any]:
     """
     Check if column values are within specified ranges.
     
@@ -233,7 +240,7 @@ def check_completeness(
     df: DataFrame,
     required_columns: List[str],
     min_completeness_ratio: float = 0.95
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """
     Check feature completeness (non-null ratio for required columns).
     

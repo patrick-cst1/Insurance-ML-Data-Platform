@@ -4,7 +4,7 @@ Gold Layer: Create ML-ready claims features with point-in-time correctness
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, datediff, current_date
+from pyspark.sql.functions import col, datediff, current_date, to_date
 import sys
 import os
 
@@ -65,12 +65,14 @@ def main():
         logger.info(f"Created features for {claims_features.count()} customers")
         
         # Write to Gold
+        claims_features = claims_features.withColumn("feature_date", to_date(col("feature_timestamp")))
+        
         metadata = PurviewMetadata.get_gold_metadata("gold_claims_features", feature_type="claims")
         write_delta(
             df=claims_features,
             path=GOLD_FEATURES_PATH,
             mode="overwrite",
-            partition_by=["feature_timestamp"],
+            partition_by=["feature_date"],
             description=metadata["description"],
             tags=metadata["tags"]
         )

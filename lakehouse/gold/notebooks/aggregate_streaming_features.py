@@ -25,8 +25,18 @@ def main():
     with PipelineTimer(logger, "aggregate_streaming_features"):
         
         # Read Silver streaming claims
-        df_stream = read_delta(spark, "Tables/silver_realtime_claims")
-        logger.info(f"Read {df_stream.count()} streaming events from Silver")
+        try:
+            df_stream = read_delta(spark, "Tables/silver_realtime_claims")
+            record_count = df_stream.count()
+            logger.info(f"Read {record_count} streaming events from Silver")
+            
+            if record_count == 0:
+                logger.info("No streaming events available, skipping aggregation")
+                return
+        except Exception as e:
+            logger.warning(f"silver_realtime_claims table not found: {e}")
+            logger.info("Skipping streaming aggregation - no realtime claims available")
+            return
         
         # Aggregate by customer (1-hour and 24-hour windows)
         # Note: For true streaming, this would use structured streaming

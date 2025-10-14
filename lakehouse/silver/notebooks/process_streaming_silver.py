@@ -26,8 +26,13 @@ def main():
     with PipelineTimer(logger, "process_streaming_silver"):
         
         # Read from Bronze realtime events
-        df_bronze_stream = read_delta(spark, "Tables/bronze_realtime_events")
-        logger.info(f"Read {df_bronze_stream.count()} streaming events from Bronze")
+        try:
+            df_bronze_stream = read_delta(spark, "Tables/bronze_realtime_events")
+            logger.info(f"Read {df_bronze_stream.count()} streaming events from Bronze")
+        except Exception as e:
+            logger.warning(f"bronze_realtime_events table not found or empty: {e}")
+            logger.info("Skipping streaming processing - no realtime events available")
+            return
         
         # Validation: remove invalid records
         df_valid = df_bronze_stream \

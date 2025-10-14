@@ -1,7 +1,7 @@
 import yaml
 from pyspark.sql import DataFrame
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType, TimestampType, BooleanType, LongType
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import logging
 
 
@@ -36,7 +36,7 @@ def validate_contract(
     df: DataFrame,
     contract: Dict,
     raise_on_failure: bool = False
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """
     Validate DataFrame against contract.
     
