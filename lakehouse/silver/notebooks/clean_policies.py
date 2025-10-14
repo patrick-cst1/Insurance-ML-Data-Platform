@@ -1,4 +1,4 @@
-# Databricks notebook source
+# Azure Fabric notebook source
 """
 Silver Layer: Clean and standardize policies with SCD2
 """

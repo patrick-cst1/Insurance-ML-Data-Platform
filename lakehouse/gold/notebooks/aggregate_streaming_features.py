@@ -1,4 +1,4 @@
-# Databricks notebook source
+# Azure Fabric notebook source
 """
 Gold Layer: Aggregate streaming features for real-time ML inference
 Creates time-window aggregations from streaming events

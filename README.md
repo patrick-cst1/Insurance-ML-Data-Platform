@@ -287,7 +287,7 @@ python -c "import yaml; print(yaml.safe_load(open('devops/parameters/fabric.yml'
    git push origin main  # Triggers azure-pipelines-cd.yml
    # The CD pipeline runs:
    #   - framework/scripts/deploy_to_fabric.py (deploy notebooks/pipelines via Fabric API)
-   #     - Auto-converts pipeline activities from "DatabricksNotebook" to Fabric "Notebook"
+   #     - Deploys notebooks and pipelines to Fabric workspace
    #       and maps notebookName from the file stem (e.g., clean_policies)
    # Note: Post-deployment validations run inside Fabric workspace (see section below)
    # Option B: Manual upload via Fabric Git integration

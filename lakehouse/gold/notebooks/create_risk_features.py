@@ -1,4 +1,4 @@
-# Databricks notebook source
+# Azure Fabric notebook source
 """Gold Layer: Create risk assessment features"""
 
 from pyspark.sql import SparkSession

@@ -1,4 +1,4 @@
-# Databricks notebook source
+# Azure Fabric notebook source
 """
 Gold Layer: Create customer dimension features
 """

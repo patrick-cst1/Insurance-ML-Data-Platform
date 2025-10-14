@@ -1,4 +1,4 @@
-# Databricks notebook source
+# Azure Fabric notebook source
 """
 Silver Layer: Process streaming events for validation and deduplication
 This notebook processes events from Bronze realtime table or directly from KQL

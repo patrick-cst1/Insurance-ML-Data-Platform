@@ -1,4 +1,4 @@
-# Databricks notebook source
+# Azure Fabric notebook source
 """
 Silver Layer: Enrich policies with Cosmos DB data
 """

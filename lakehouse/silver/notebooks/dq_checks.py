@@ -1,4 +1,4 @@
-# Databricks notebook source
+# Azure Fabric notebook source
 """
 Silver Layer: Comprehensive Data Quality Checks
 Runs validation suite across all Silver tables and logs results

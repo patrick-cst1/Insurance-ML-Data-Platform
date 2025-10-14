@@ -1,4 +1,4 @@
-# Databricks notebook source
+# Azure Fabric notebook source
 """
 Silver Layer: Data Quality Checks with Great Expectations
 Enhanced validation using Great Expectations framework

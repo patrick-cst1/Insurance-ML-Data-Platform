@@ -1,4 +1,4 @@
-# Databricks notebook source
+# Azure Fabric notebook source
 """
 Bronze Layer: Incremental Ingest Policies CSV to Delta using Watermarking
 """

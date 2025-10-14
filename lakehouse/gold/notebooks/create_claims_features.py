@@ -1,4 +1,4 @@
-# Databricks notebook source
+# Azure Fabric notebook source
 """
 Gold Layer: Create ML-ready claims features with point-in-time correctness
 """

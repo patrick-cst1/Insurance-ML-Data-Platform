@@ -4,7 +4,7 @@
   "activities": [
     {
       "name": "Bronze_Ingestion",
-      "type": "DatabricksNotebook",
+      "type": "Notebook",
       "dependsOn": [],
       "policy": {
         "timeout": "0.01:00:00",
@@ -18,7 +18,7 @@
     },
     {
       "name": "Bronze_Ingestion_Claims",
-      "type": "DatabricksNotebook",
+      "type": "Notebook",
       "dependsOn": [],
       "typeProperties": {
         "notebookPath": "/lakehouse/bronze/notebooks/ingest_claims"
@@ -26,7 +26,7 @@
     },
     {
       "name": "Bronze_Ingestion_Customers",
-      "type": "DatabricksNotebook",
+      "type": "Notebook",
       "dependsOn": [],
       "typeProperties": {
         "notebookPath": "/lakehouse/bronze/notebooks/ingest_customers"
@@ -34,7 +34,7 @@
     },
     {
       "name": "Bronze_Ingestion_Agents",
-      "type": "DatabricksNotebook",
+      "type": "Notebook",
       "dependsOn": [],
       "typeProperties": {
         "notebookPath": "/lakehouse/bronze/notebooks/ingest_agents"
@@ -42,7 +42,7 @@
     },
     {
       "name": "Silver_Clean_Policies",
-      "type": "DatabricksNotebook",
+      "type": "Notebook",
       "dependsOn": [
         {
           "activity": "Bronze_Ingestion",
@@ -55,7 +55,7 @@
     },
     {
       "name": "Silver_Clean_Claims",
-      "type": "DatabricksNotebook",
+      "type": "Notebook",
       "dependsOn": [
         {
           "activity": "Bronze_Ingestion_Claims",
@@ -68,7 +68,7 @@
     },
     {
       "name": "Silver_Clean_Customers",
-      "type": "DatabricksNotebook",
+      "type": "Notebook",
       "dependsOn": [
         {
           "activity": "Bronze_Ingestion_Customers",
@@ -81,7 +81,7 @@
     },
     {
       "name": "Silver_Clean_Agents",
-      "type": "DatabricksNotebook",
+      "type": "Notebook",
       "dependsOn": [
         {
           "activity": "Bronze_Ingestion_Agents",
@@ -94,7 +94,7 @@
     },
     {
       "name": "Silver_DQ_Checks",
-      "type": "DatabricksNotebook",
+      "type": "Notebook",
       "dependsOn": [
         {
           "activity": "Silver_Clean_Policies",
@@ -119,7 +119,7 @@
     },
     {
       "name": "Silver_Enrich_Cosmos",
-      "type": "DatabricksNotebook",
+      "type": "Notebook",
       "dependsOn": [
         {
           "activity": "Silver_DQ_Checks",
@@ -132,7 +132,7 @@
     },
     {
       "name": "Gold_Claims_Features",
-      "type": "DatabricksNotebook",
+      "type": "Notebook",
       "dependsOn": [
         {
           "activity": "Silver_Enrich_Cosmos",
@@ -145,7 +145,7 @@
     },
     {
       "name": "Gold_Customer_Features",
-      "type": "DatabricksNotebook",
+      "type": "Notebook",
       "dependsOn": [
         {
           "activity": "Silver_Enrich_Cosmos",
@@ -158,7 +158,7 @@
     },
     {
       "name": "Gold_Risk_Features",
-      "type": "DatabricksNotebook",
+      "type": "Notebook",
       "dependsOn": [
         {
           "activity": "Gold_Claims_Features",

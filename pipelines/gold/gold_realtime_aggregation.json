@@ -4,7 +4,7 @@
   "activities": [
     {
       "name": "Aggregate_Streaming_Features",
-      "type": "DatabricksNotebook",
+      "type": "Notebook",
       "dependsOn": [],
       "policy": {
         "timeout": "0.00:30:00",

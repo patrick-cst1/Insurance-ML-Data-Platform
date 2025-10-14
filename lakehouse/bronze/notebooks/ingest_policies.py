@@ -1,4 +1,4 @@
-# Databricks notebook source
+# Azure Fabric notebook source
 """
 Bronze Layer: Ingest Policies CSV to Delta
 """
