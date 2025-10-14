@@ -110,75 +110,85 @@ sequenceDiagram
 Insurance-ML-Data-Platform/
 │
 ├── framework/                          # Reusable Framework
-│   ├── config/                        # Configuration Files
-│   │   ├── schema_contracts/          # YAML schema definitions (15 files)
+│   ├── __init__.py                    # Framework package initialization
+│   │
+│   ├── config/                        # Configuration Files (21 YAML files)
+│   │   ├── schema_contracts/          # YAML schema definitions (15 tables)
+│   │   │   ├── bronze_*.yaml          # Bronze layer schemas (5 files)
+│   │   │   ├── silver_*.yaml          # Silver layer schemas (6 files)
+│   │   │   └── gold_*.yaml            # Gold layer schemas (4 files)
 │   │   ├── cosmos.yaml                # Cosmos DB settings
 │   │   ├── eventstream.yaml           # Streaming config
-│   │   ├── great_expectations_rules.yaml  # Great Expectations validation rules
+│   │   ├── great_expectations_rules.yaml  # Great Expectations validation rules (6 tables)
 │   │   ├── schema_bronze.yaml         # Bronze layer schema
 │   │   ├── schema_silver.yaml         # Silver layer schema
 │   │   └── schema_gold.yaml           # Gold layer schema
 │   │
 │   ├── libs/                          # Core Libraries (10 modules)
-│   │   ├── __init__.py                # Module exports
+│   │   ├── __init__.py                # Module exports (all functions)
 │   │   ├── delta_ops.py               # Delta Lake operations (read, write, merge, optimize)
 │   │   ├── data_quality.py            # DQ validation functions (6 validators)
 │   │   ├── great_expectations_validator.py  # Great Expectations integration
-│   │   ├── cosmos_io.py               # Cosmos DB connector (connect, query, enrich)
-│   │   ├── schema_contracts.py        # Schema validation (load, validate, enforce)
+│   │   ├── cosmos_io.py               # Cosmos DB connector (connect, query, enrich, batch_read)
+│   │   ├── schema_contracts.py        # Schema validation (load, validate, enforce, build)
 │   │   ├── watermarking.py            # Incremental processing (get, update, reset watermarks)
 │   │   ├── feature_utils.py           # Feature engineering (aggregations, SCD2, point-in-time)
-│   │   ├── logging_utils.py           # Logging & monitoring utilities
+│   │   ├── logging_utils.py           # Logging & monitoring utilities (logger, timer, stats)
 │   │   └── purview_integration.py     # Purview metadata helpers (standardized tags)
 │   │
-│   ├── scripts/                       # Management Scripts (4 scripts)
+│   ├── scripts/                       # Management Scripts (3 scripts)
 │   │   ├── __init__.py                # Module exports
-│   │   ├── delta_maintenance.py       # OPTIMIZE, ZORDER, VACUUM operations
-│   │   ├── validate_deployment.py     # Post-deployment validation (all layers)
+│   │   ├── delta_maintenance.py       # OPTIMIZE, ZORDER, VACUUM operations (9 tables)
+│   │   ├── validate_deployment.py     # Post-deployment validation (all layers, 15 tables)
 │   │   └── deploy_to_fabric.py        # Fabric REST API deployment automation
 │   │
-│   └── setup/                         # Initialization Scripts
+│   └── setup/                         # Initialization Scripts (1 script)
 │       ├── __init__.py                # Module exports
 │       └── init_control_tables.py     # Initialize watermark & DQ results tables
 │
-├── lakehouse/                         # Medallion Notebooks (18 notebooks)
+├── lakehouse/                         # Medallion Notebooks (18 notebooks total)
 │   ├── bronze/notebooks/              # Raw data ingestion (6 notebooks)
-│   │   ├── ingest_policies.py
-│   │   ├── ingest_policies_incremental.py
-│   │   ├── ingest_claims.py
-│   │   ├── ingest_customers.py
-│   │   ├── ingest_agents.py
-│   │   └── ingest_stream_events_to_delta.py
+│   │   ├── ingest_policies.py                 # Full load policies ingestion
+│   │   ├── ingest_policies_incremental.py     # Incremental policies with watermarking
+│   │   ├── ingest_claims.py                   # Claims ingestion
+│   │   ├── ingest_customers.py                # Customers ingestion
+│   │   ├── ingest_agents.py                   # Agents ingestion
+│   │   └── ingest_stream_events_to_delta.py   # Eventstream → Bronze Delta
 │   │
 │   ├── silver/notebooks/              # Data cleansing & enrichment (8 notebooks)
-│   │   ├── clean_policies.py
-│   │   ├── clean_claims.py
-│   │   ├── clean_customers.py
-│   │   ├── clean_agents.py
-│   │   ├── dq_checks.py
-│   │   ├── dq_checks_with_great_expectations.py
-│   │   ├── enrich_from_cosmos.py
-│   │   └── process_streaming_silver.py
+│   │   ├── clean_policies.py                  # Clean + SCD Type 2 for policies
+│   │   ├── clean_claims.py                    # Clean + validate claims
+│   │   ├── clean_customers.py                 # Clean + SCD Type 2 for customers
+│   │   ├── clean_agents.py                    # Clean agents data
+│   │   ├── dq_checks.py                       # Standard DQ validators (6 functions)
+│   │   ├── dq_checks_with_great_expectations.py  # Advanced GE validation (optional gate)
+│   │   ├── enrich_from_cosmos.py              # Cosmos DB enrichment (risk scores)
+│   │   └── process_streaming_silver.py        # Streaming data → Silver transformation
 │   │
 │   └── gold/notebooks/                # ML feature engineering (4 notebooks)
-│       ├── create_claims_features.py
-│       ├── create_customer_features.py
-│       ├── create_risk_features.py
-│       └── aggregate_streaming_features.py
+│       ├── create_claims_features.py          # Claims-based features
+│       ├── create_customer_features.py        # Customer-based features
+│       ├── create_risk_features.py            # Risk assessment features
+│       └── aggregate_streaming_features.py    # Real-time aggregation features
 │
-├── streaming/                         # Real-time Assets
+├── streaming/                         # Real-time Assets (5 files)
 │   ├── eventstream/
-│   │   └── outputs/                   # KQL & Lakehouse dual-sink configuration
+│   │   └── outputs/                   # Dual-sink configuration
+│   │       ├── kql_sink_config.json           # KQL Database sink
+│   │       └── lakehouse_sink_config.json     # Lakehouse Bronze sink
 │   │
-│   └── kql/                           # KQL Database
-│       ├── tables/                    # Table definitions
-│       └── aggregations/              # Materialized views for real-time metrics
+│   └── kql/                           # KQL Database queries
+│       ├── tables/
+│       │   └── realtime_claims_table.kql      # KQL table definition
+│       └── aggregations/
+│           ├── gold_realtime_features.kql     # Real-time feature aggregations
+│           └── monitoring.kql                 # Monitoring queries
 │
 ├── pipelines/                         # Orchestration (2 pipelines)
 │   ├── gold/
-│   │   └── gold_realtime_aggregation.json # Streaming feature aggregation
+│   │   └── gold_realtime_aggregation.json # Streaming feature aggregation pipeline
 │   └── orchestration/
-│       └── master_batch_pipeline.json     # Master batch orchestration (Bronze→Silver→Gold)
+│       └── master_batch_pipeline.json     # Master batch orchestration (10 activities)
 │
 ├── devops/                            # CI/CD
 │   ├── pipelines/
@@ -188,17 +198,23 @@ Insurance-ML-Data-Platform/
 │   └── parameters/
 │       └── fabric.yml                 # Unified Fabric workspace configuration
 │
-├── samples/                           # Sample Data
-│   ├── batch/                         # CSV files (policies, claims, customers, agents)
-│   ├── streaming/                     # JSON events (realtime claims)
-│   └── nosql/                         # Cosmos enrichment data
+├── samples/                           # Sample Data (6 files)
+│   ├── batch/                         # CSV files for batch ingestion
+│   │   ├── policies.csv                       # Sample policy data
+│   │   ├── claims.csv                         # Sample claims data
+│   │   ├── customers.csv                      # Sample customer data
+│   │   └── agents.csv                         # Sample agent data
+│   ├── streaming/
+│   │   └── realtime_claims_events.json        # Sample real-time events
+│   └── nosql/
+│       └── policy_enrichment_data.json        # Sample Cosmos DB enrichment data
 │
-├── monitoring/                        # Monitoring & Reporting
+├── monitoring/                        # Monitoring & Reporting (3 files)
 │   ├── dashboards/                    # JSON dashboard definitions (2 dashboards)
-│   │   ├── data_quality_dashboard.json
-│   │   └── pipeline_performance_dashboard.json
+│   │   ├── data_quality_dashboard.json        # DQ metrics visualization
+│   │   └── pipeline_performance_dashboard.json # Pipeline monitoring
 │   └── scripts/
-│       └── generate_data_quality_report.py  # DQ summary report generator
+│       └── generate_data_quality_report.py    # DQ summary report generator
 │
 ├── .gitignore                         # Git ignore patterns
 ├── LICENSE                            # MIT License
@@ -227,7 +243,7 @@ cd Insurance-ML-Data-Platform
 python -c "import yaml; print(yaml.safe_load(open('devops/parameters/fabric.yml')))"
 ```
 
-**Note**: All development and testing are performed directly in Microsoft Fabric workspace. Notebooks import framework libraries via `sys.path.append("/Workspace/framework/libs")`. If running from a Git-integrated workspace, relative imports also work (e.g. `sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))`). No local development setup required.
+**Note**: All development and testing are performed directly in Microsoft Fabric workspace. Notebooks import framework libraries via `sys.path.append("/Workspace/framework/libs")` or `sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))` for Git-integrated workspaces. No local development setup required.
 
 ### Deployment Steps
 
@@ -355,11 +371,14 @@ All testing and validation are performed directly in Microsoft Fabric workspace 
 # framework/scripts/validate_deployment.py
 # 
 # Validates:
-# - All Bronze tables (5 tables): policies, claims, customers, agents, realtime_events
-# - All Silver tables (6 tables): policies, claims, customers, agents, policies_enriched, realtime_claims
-# - All Gold tables (4 tables): claims_features, customer_features, risk_features, streaming_features
+# - Bronze Layer (5 tables): bronze_policies, bronze_claims, bronze_customers, 
+#   bronze_agents, bronze_realtime_events
+# - Silver Layer (6 tables): silver_policies, silver_claims, silver_customers, 
+#   silver_agents, silver_policies_enriched, silver_realtime_claims
+# - Gold Layer (4 tables): gold_claims_features, gold_customer_features, 
+#   gold_risk_features, gold_streaming_features
 # - Control tables (2 tables): watermark_control, dq_check_results
-# - Framework libraries imports
+# - Framework libraries imports (10 modules)
 ```
 
 **4. Maintenance Operations:**
@@ -610,10 +629,10 @@ This platform implements a **production-ready medallion architecture** with the 
    
    **System 2: Great Expectations (`great_expectations_validator.py`)**
    - **Purpose**: Advanced statistical validation gate for Silver layer
-   - **Config**: `framework/config/great_expectations_rules.yaml` (126 lines, 6 tables)
+   - **Config**: `framework/config/great_expectations_rules.yaml` (122 lines, 6 tables: silver_policies, silver_claims, silver_customers, silver_agents, silver_policies_enriched, silver_realtime_claims)
    - **Used by**: `dq_checks_with_great_expectations.py` (optional deep validation)
    - **Output**: `Tables/dq_check_results_ge`
-   - **Advanced Features**: Regex patterns, date formats, statistical profiling, mostly parameter
+   - **Advanced Features**: Regex patterns, date formats, statistical profiling, mostly parameter, strftime validation
    
 4. **Point-in-Time Correctness**
    - SCD Type 2 dimensions for historical tracking
