@@ -330,14 +330,14 @@ All testing and validation are performed directly in Microsoft Fabric workspace 
 # Standard DQ Checks (fast, always run in pipeline):
 # Execute: lakehouse/silver/notebooks/dq_checks.py
 # - Uses: data_quality.py validators (schema, nulls, duplicates, freshness, value_range, completeness)
-# - Output: Tables/dq_check_results
+# - Output: Tables/dq_check_results (partitioned by check_date)
 # - Purpose: Inline validation during transformations, fail-fast checks
 
 # Great Expectations Checks (advanced, optional gate):
 # Execute: lakehouse/silver/notebooks/dq_checks_with_great_expectations.py
 # - Uses: great_expectations_validator.py
 # - Config: framework/config/great_expectations_rules.yaml (with path fallback if /Workspace is not mounted)
-# - Output: Tables/dq_check_results_ge
+# - Output: Tables/dq_check_results_ge (partitioned by check_date)
 # - Features: Regex patterns, date formats, statistical profiling, mostly parameter
 
 # Note: Both systems are complementary, not mutually exclusive.

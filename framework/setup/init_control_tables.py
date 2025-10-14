@@ -41,6 +41,8 @@ def init_dq_results_table(spark: SparkSession, table_path: str = "Tables/dq_chec
     """Initialize data quality results table."""
     logger = get_logger("init_dq_results_table")
     
+    from pyspark.sql.types import DateType
+    
     schema = StructType([
         StructField("table_name", StringType(), False),
         StructField("record_count", IntegerType(), True),
@@ -49,6 +51,7 @@ def init_dq_results_table(spark: SparkSession, table_path: str = "Tables/dq_chec
         StructField("null_check", BooleanType(), True),
         StructField("freshness_check", BooleanType(), True),
         StructField("check_timestamp", TimestampType(), False),
+        StructField("check_date", DateType(), False),
         StructField("details", StringType(), True)
     ])
     

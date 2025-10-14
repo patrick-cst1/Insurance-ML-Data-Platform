@@ -137,11 +137,14 @@ def main():
         results_df = results_df.withColumn("check_timestamp", current_timestamp())
         
         # Write GE results to Delta table
+        from pyspark.sql.functions import to_date
+        results_df = results_df.withColumn("check_date", to_date("check_timestamp"))
+        
         write_delta(
             df=results_df,
             path=DQ_RESULTS_PATH,
             mode="append",
-            partition_by=["check_timestamp"]
+            partition_by=["check_date"]
         )
         
         # Summary
