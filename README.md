@@ -98,7 +98,7 @@ sequenceDiagram
 | **Streaming** | Real-time event ingestion & processing | Eventstream, KQL Database |
 | **Orchestration** | Pipeline scheduling & dependencies | Data Factory, Master Pipelines |
 | **CI/CD** | Automated deployment automation | Azure DevOps, Fabric Deployment Pipelines |
-| **Data Quality** | Validation frameworks & monitoring | Great Expectations, Custom validators |
+| **Data Quality** | Dual validation system: standard validators (inline) + Great Expectations (gate) | Custom validators (6 functions), Great Expectations |
 | **Secrets Management** | Secure credential storage | Azure Key Vault |
 | **Monitoring** | Pipeline metrics & alerting | Fabric Monitoring Hub, KQL Queries |
 
@@ -117,39 +117,63 @@ Insurance-ML-Data-Platform/
 │   │   ├── schema_silver.yaml         # Silver layer schema
 │   │   └── schema_gold.yaml           # Gold layer schema
 │   │
-│   ├── libs/                          # Core Libraries
-│   │   ├── delta_ops.py               # Delta Lake operations
-│   │   ├── data_quality.py            # DQ validation functions
+│   ├── libs/                          # Core Libraries (10 modules)
+│   │   ├── __init__.py                # Module exports
+│   │   ├── delta_ops.py               # Delta Lake operations (read, write, merge, optimize)
+│   │   ├── data_quality.py            # DQ validation functions (6 validators)
 │   │   ├── great_expectations_validator.py  # Great Expectations integration
-│   │   ├── cosmos_io.py               # Cosmos DB connector
-│   │   ├── schema_contracts.py        # Schema validation
-│   │   ├── watermarking.py            # Incremental processing
-│   │   ├── feature_utils.py           # Feature engineering
-│   │   └── logging_utils.py           # Logging & monitoring
+│   │   ├── cosmos_io.py               # Cosmos DB connector (connect, query, enrich)
+│   │   ├── schema_contracts.py        # Schema validation (load, validate, enforce)
+│   │   ├── watermarking.py            # Incremental processing (get, update, reset watermarks)
+│   │   ├── feature_utils.py           # Feature engineering (aggregations, SCD2, point-in-time)
+│   │   ├── logging_utils.py           # Logging & monitoring utilities
+│   │   └── alerting.py                # Data quality alerting service
 │   │
-│   ├── scripts/                       # Management Scripts
-│   │   ├── initialize_watermark_table.py  # Initialize watermark control
-│   │   ├── delta_maintenance.py       # OPTIMIZE, ZORDER, VACUUM
-│   │   ├── validate_deployment.py     # Post-deployment validation
-│   │   └── deploy_to_fabric.py        # Fabric REST API deployment
+│   ├── scripts/                       # Management Scripts (5 scripts)
+│   │   ├── __init__.py                # Module exports
+│   │   ├── initialize_watermark_table.py  # Initialize watermark control table
+│   │   ├── delta_maintenance.py       # OPTIMIZE, ZORDER, VACUUM operations
+│   │   ├── validate_deployment.py     # Post-deployment validation (all layers)
+│   │   └── deploy_to_fabric.py        # Fabric REST API deployment automation
 │   │
 │   └── setup/                         # Initialization Scripts
-│       └── init_control_tables.py     # Initialize control tables
+│       ├── __init__.py                # Module exports
+│       └── init_control_tables.py     # Initialize watermark & DQ results tables
 │
-├── lakehouse/                         # Medallion Notebooks
-│   ├── bronze/notebooks/              # Raw data ingestion (to be created in Fabric)
-│   ├── silver/notebooks/              # Data cleansing & enrichment (to be created in Fabric)
-│   └── gold/notebooks/                # ML feature engineering (to be created in Fabric)
+├── lakehouse/                         # Medallion Notebooks (18 notebooks)
+│   ├── bronze/notebooks/              # Raw data ingestion (6 notebooks)
+│   │   ├── ingest_policies.py
+│   │   ├── ingest_policies_incremental.py
+│   │   ├── ingest_claims.py
+│   │   ├── ingest_customers.py
+│   │   ├── ingest_agents.py
+│   │   └── ingest_stream_events_to_delta.py
+│   │
+│   ├── silver/notebooks/              # Data cleansing & enrichment (8 notebooks)
+│   │   ├── clean_policies.py
+│   │   ├── clean_claims.py
+│   │   ├── clean_customers.py
+│   │   ├── clean_agents.py
+│   │   ├── dq_checks.py
+│   │   ├── dq_checks_with_great_expectations.py
+│   │   ├── enrich_from_cosmos.py
+│   │   └── process_streaming_silver.py
+│   │
+│   └── gold/notebooks/                # ML feature engineering (4 notebooks)
+│       ├── create_claims_features.py
+│       ├── create_customer_features.py
+│       ├── create_risk_features.py
+│       └── aggregate_streaming_features.py
 │
 ├── streaming/                         # Real-time Assets
 │   ├── eventstream/
-│   │   └── outputs/                   # KQL & Lakehouse sinks
+│   │   └── outputs/                   # KQL & Lakehouse dual-sink configuration
 │   │
 │   └── kql/                           # KQL Database
 │       ├── tables/                    # Table definitions
-│       └── aggregations/              # Materialized views
+│       └── aggregations/              # Materialized views for real-time metrics
 │
-├── pipelines/                         # Orchestration
+├── pipelines/                         # Orchestration (2 pipelines)
 │   ├── gold/
 │   │   └── gold_realtime_aggregation.json # Streaming feature aggregation
 │   └── orchestration/
@@ -157,8 +181,8 @@ Insurance-ML-Data-Platform/
 │
 ├── devops/                            # CI/CD
 │   ├── pipelines/
-│   │   ├── azure-pipelines-ci.yml     # Continuous integration (PR validation, tests)
-│   │   └── azure-pipelines-cd.yml     # Continuous deployment (Fabric deployment)
+│   │   ├── azure-pipelines-ci.yml     # Continuous integration (config validation, syntax checks)
+│   │   └── azure-pipelines-cd.yml     # Continuous deployment (Fabric workspace deployment)
 │   │
 │   └── parameters/
 │       └── fabric.yml                 # Unified Fabric workspace configuration
@@ -168,12 +192,15 @@ Insurance-ML-Data-Platform/
 │   ├── streaming/                     # JSON events (realtime claims)
 │   └── nosql/                         # Cosmos enrichment data
 │
-├── data-quality/                      # Data Quality Configuration
-│   └── data_quality_rules.yaml        # Centralized DQ rules
+├── monitoring/                        # Monitoring & Reporting
+│   ├── dashboards/                    # JSON dashboard definitions (2 dashboards)
+│   │   ├── data_quality_dashboard.json
+│   │   └── pipeline_performance_dashboard.json
+│   └── scripts/
+│       └── generate_data_quality_report.py  # DQ summary report generator
 │
-├── monitoring/                        # Monitoring Dashboards
-│   └── dashboards/                    # JSON dashboard definitions
-│
+├── .gitignore                         # Git ignore patterns
+├── LICENSE                            # MIT License
 ├── requirements.txt                   # Python dependencies (Fabric runtime)
 └── README.md                          # This file
 ```
@@ -277,38 +304,51 @@ python -c "import yaml; print(yaml.safe_load(open('devops/parameters/fabric.yml'
    # 5. View monitoring dashboards
    ```
 
-### Testing in Fabric
+### Testing & Validation in Fabric
 
-All testing is performed directly in Microsoft Fabric workspace:
+All testing and validation are performed directly in Microsoft Fabric workspace (no local development required):
 
-**Data Quality Testing:**
+**1. Data Quality Validation:**
 ```bash
-# Run standard DQ checks
+# Standard DQ Checks (fast, always run in pipeline):
 # Execute: lakehouse/silver/notebooks/dq_checks.py
+# - Uses: data_quality.py validators (duplicates, nulls, freshness)
+# - Output: Tables/dq_check_results
 
-# Run Great Expectations validation
+# Great Expectations Checks (advanced, optional gate):
 # Execute: lakehouse/silver/notebooks/dq_checks_with_great_expectations.py
+# - Uses: great_expectations_validator.py
+# - Config: framework/config/great_expectations_rules.yaml
+# - Output: Tables/dq_check_results_ge
+# - Features: Regex, date formats, statistical profiling
+
+# Note: Both systems are complementary, not mutually exclusive
 ```
 
-**End-to-End Testing:**
+**2. End-to-End Pipeline Testing:**
 ```bash
-# In Fabric Workspace, execute notebooks in sequence:
-# 1. Bronze ingestion notebooks
-# 2. Silver cleaning notebooks
-# 3. Gold feature engineering notebooks
-# 4. Validate data lineage and quality
+# Execute master_batch_pipeline in Fabric to test complete flow:
+# Bronze ingestion → Silver cleaning → Silver DQ checks → 
+# Silver Cosmos enrichment → Gold feature engineering
 ```
 
-**Maintenance Operations:**
+**3. Post-Deployment Validation:**
 ```bash
-# Run Delta Lake maintenance (OPTIMIZE, ZORDER, VACUUM)
+# Execute in Fabric Workspace:
+# framework/scripts/validate_deployment.py
+# Validates all Delta tables (Bronze/Silver/Gold) and control tables
+```
+
+**4. Maintenance Operations:**
+```bash
+# Delta Lake optimization (OPTIMIZE, ZORDER, VACUUM):
 # Execute: framework/scripts/delta_maintenance.py
 
-# Validate deployment completeness
-# Execute: framework/scripts/validate_deployment.py
-
-# Initialize watermark control
+# Initialize watermark control table:
 # Execute: framework/scripts/initialize_watermark_table.py
+
+# Generate DQ summary report:
+# Execute: monitoring/scripts/generate_data_quality_report.py
 ```
 
 ## 📚 Framework Usage Examples
@@ -333,11 +373,14 @@ merge_delta(
 )
 ```
 
-### Data Quality Validation
+### Data Quality Validation (Dual System)
 
-**Standard DQ Checks:**
+**System 1: Standard Validators (Lightweight, Inline)**
 ```python
 from framework.libs.data_quality import check_nulls, detect_duplicates, check_freshness
+
+# Used in: clean_*.py notebooks for inline validation during transformations
+# Purpose: Fast fail-fast checks
 
 # Check null ratios
 null_result = check_nulls(df, columns=["customer_id", "policy_id"], threshold=0.01)
@@ -352,9 +395,13 @@ assert dup_result["passed"], f"Found {dup_result['duplicate_count']} duplicates"
 freshness = check_freshness(df, timestamp_column="ingestion_timestamp", max_age_hours=24)
 ```
 
-**Great Expectations Validation:**
+**System 2: Great Expectations (Advanced, Validation Gate)**
 ```python
 from framework.libs.great_expectations_validator import validate_with_great_expectations
+
+# Used in: dq_checks_with_great_expectations.py for deep validation
+# Config: framework/config/great_expectations_rules.yaml
+# Purpose: Statistical profiling, regex patterns, advanced constraints
 
 # Define expectations
 expectations = [
@@ -366,12 +413,13 @@ expectations = [
         "expectation_type": "expect_column_values_to_be_between",
         "column": "premium",
         "min_value": 0,
-        "max_value": 1000000
+        "max_value": 1000000,
+        "mostly": 0.99  # Allow 1% outliers
     },
     {
-        "expectation_type": "expect_column_values_to_be_in_set",
-        "column": "status",
-        "value_set": ["ACTIVE", "INACTIVE", "PENDING"]
+        "expectation_type": "expect_column_values_to_match_regex",
+        "column": "email",
+        "regex": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
     }
 ]
 
@@ -387,6 +435,10 @@ if results["success"]:
 else:
     logger.error(f"Failed expectations: {results['results']}")
 ```
+
+**When to Use Which:**
+- **Standard Validators**: Inline checks in transformation notebooks (clean_*.py), fast comprehensive checks (dq_checks.py)
+- **Great Expectations**: Optional deep validation gate (dq_checks_with_great_expectations.py), advanced statistical profiling
 
 ### Cosmos DB Enrichment
 
@@ -423,14 +475,47 @@ pit_features = generate_point_in_time_view(
 )
 ```
 
-## 📖 Architecture & Deployment
+## 📖 Architecture Summary
 
-All architecture documentation and deployment instructions are contained in this README. Key concepts:
+This platform implements a **production-ready medallion architecture** with the following key capabilities:
 
-- **Medallion Architecture**: Bronze (raw) → Silver (curated with SCD2) → Gold (ML features)
-- **Dual-Sink Pattern**: Eventstream → KQL Database (real-time) + Lakehouse (batch replay)
-- **Point-in-Time Correctness**: SCD Type 2 + feature timestamps for ML training/inference consistency
-- **Deployment**: Single unified environment via `devops/pipelines/azure-pipelines-cd.yml`
+### Core Architecture Patterns
+
+1. **Medallion Data Flow**
+   - **Bronze Layer**: Immutable raw data ingestion with full lineage (6 ingestion notebooks)
+   - **Silver Layer**: Cleaned, validated, enriched data with SCD Type 2 tracking (8 transformation notebooks)
+   - **Gold Layer**: ML-ready feature tables with point-in-time correctness (4 feature notebooks)
+
+2. **Dual-Sink Streaming**
+   - **KQL Database**: Low-latency queries for real-time monitoring and alerts
+   - **Lakehouse Bronze**: Historical replay capability for batch ML training
+
+3. **Dual Data Quality System**
+   
+   **System 1: Standard Validators (`data_quality.py`)**
+   - **Purpose**: Lightweight inline checks during transformations
+   - **Validators**: 6 functions (schema, null_ratio, duplicates, freshness, value_range, completeness)
+   - **Used by**: All `clean_*.py` notebooks (inline validation), `dq_checks.py` (comprehensive validation)
+   - **Output**: `Tables/dq_check_results`
+   
+   **System 2: Great Expectations (`great_expectations_validator.py`)**
+   - **Purpose**: Advanced statistical validation gate for Silver layer
+   - **Config**: `framework/config/great_expectations_rules.yaml` (126 lines, 6 tables)
+   - **Used by**: `dq_checks_with_great_expectations.py` (optional deep validation)
+   - **Output**: `Tables/dq_check_results_ge`
+   - **Advanced Features**: Regex patterns, date formats, statistical profiling, mostly parameter
+   
+   **Alerting Service**: Configurable alerts for DQ failures (webhook integration ready)
+
+4. **Point-in-Time Correctness**
+   - SCD Type 2 dimensions for historical tracking
+   - Feature timestamps for temporal consistency in ML training
+   - Incremental processing with watermark control
+
+5. **Deployment Automation**
+   - **CI Pipeline**: Configuration validation, syntax checks (azure-pipelines-ci.yml)
+   - **CD Pipeline**: Automated deployment to Fabric workspace (azure-pipelines-cd.yml)
+   - **Post-Deployment Validation**: Automated validation of all layers and control tables
 
 ## 🤝 Contributing & Extension
 
