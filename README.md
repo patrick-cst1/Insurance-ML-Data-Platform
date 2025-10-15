@@ -698,6 +698,28 @@ Follow steps in **Eventstream Setup** section above.
 
 ---
 
+## 📌 Known Limitations (By Design - Demo Purposes)
+
+This is a **simplified demonstration platform**. The following limitations are intentional for ease of use:
+
+1. **Schema Validation**: Basic column existence + nullable checks only (no data type enforcement or complex constraints)
+2. **SCD Type 2**: Simplified append-only with `is_current` flag (no merge logic for updates)
+3. **Incremental Processing**: Full refresh mode for simplicity (not optimized for large-scale production)
+4. **Data Quality**: Inline logging and basic checks only (no comprehensive DQ dashboard)
+5. **Eventstream Setup**: Requires manual creation via Fabric UI (Fabric platform limitation - not Git-supported)
+6. **Authentication**: Assumes Fabric workspace access (no explicit credential management)
+
+**These are acceptable tradeoffs for a demonstration and learning platform** ✅
+
+For production use, consider:
+- Implementing full Delta merge operations for SCD2
+- Adding comprehensive data quality framework (e.g., Great Expectations)
+- Implementing incremental processing with watermarks
+- Setting up proper authentication and secrets management
+- Creating real-time monitoring dashboards
+
+---
+
 ## 👥 Author
 
 **Patrick Cheung**  
