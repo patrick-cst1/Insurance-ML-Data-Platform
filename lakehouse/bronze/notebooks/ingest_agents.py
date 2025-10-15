@@ -5,13 +5,14 @@ Simplified version - no framework dependencies
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import current_timestamp, lit, to_date, col
+from pyspark.sql.functions import current_timestamp, lit, to_date, col, input_file_name
 import logging
 import yaml
+import uuid
 
 # COMMAND ----------
 
-SCHEMA_PATH = "/lakehouse/default/Files/config/schemas/bronze_agents.yaml"
+SCHEMA_PATH = "/lakehouse/default/Files/config/schemas/bronze/bronze_agents.yaml"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -52,11 +53,21 @@ def main():
     
     try:
         logger.info("Reading agents from CSV")
-        df = spark.read.csv("Files/samples/batch/agents.csv", header=True, inferSchema=True)
+        # Read all columns as strings to preserve raw data (Medallion best practice)
+        df = spark.read.format("csv") \
+            .option("header", "true") \
+            .option("inferSchema", "false") \
+            .load("Files/samples/batch/agents.csv")
         
-        df_enriched = df.withColumn("ingestion_timestamp", current_timestamp()) \
+        # Generate unique process ID for this pipeline run
+        process_id = str(uuid.uuid4())
+        
+        df_enriched = df \
+            .withColumn("ingestion_timestamp", current_timestamp()) \
             .withColumn("ingestion_date", to_date(current_timestamp())) \
-            .withColumn("source_system", lit("legacy_csv"))
+            .withColumn("source_system", lit("legacy_csv")) \
+            .withColumn("process_id", lit(process_id)) \
+            .withColumn("source_file_name", input_file_name())
         
         record_count = df_enriched.count()
         logger.info(f"Read {record_count} agents")

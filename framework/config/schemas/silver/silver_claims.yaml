@@ -1,0 +1,57 @@
+# Silver Layer: Claims Schema Contract
+# Defines expected types after Bronze to Silver transformation
+# Type casting enforced in Silver notebooks based on this schema
+
+table_name: silver_claims
+layer: silver
+source_table: bronze_claims
+
+# Business columns with enforced types
+business_columns:
+  - name: claim_id
+    type: string
+    nullable: false
+    
+  - name: policy_id
+    type: string
+    nullable: false
+    
+  - name: claim_amount
+    type: double
+    nullable: false
+    validation:
+      - rule: greater_than
+        value: 0
+    
+  - name: claim_date
+    type: date
+    nullable: false
+    
+  - name: claim_status
+    type: string
+    nullable: true
+    transformation: upper_trim
+    
+  - name: claim_type
+    type: string
+    nullable: true
+    transformation: upper_trim
+
+# Technical columns
+technical_columns:
+  - name: customer_id
+    type: string
+    nullable: true
+
+# SCD Type 2 columns (auto-added)
+scd_columns:
+  - effective_from
+  - effective_to
+  - is_current
+
+# Processing metadata
+metadata_columns:
+  - processed_timestamp
+  - ingestion_timestamp
+  - source_system
+  - process_id

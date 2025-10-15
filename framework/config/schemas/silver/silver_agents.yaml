@@ -1,0 +1,46 @@
+# Silver Layer: Agents Schema Contract
+# Defines expected types after Bronze to Silver transformation
+# Type casting enforced in Silver notebooks based on this schema
+
+table_name: silver_agents
+layer: silver
+source_table: bronze_agents
+
+# Business columns with enforced types
+business_columns:
+  - name: agent_id
+    type: string
+    nullable: false
+    
+  - name: name
+    type: string
+    nullable: true
+    transformation: trim
+    
+  - name: agent_type
+    type: string
+    nullable: true
+    transformation: upper_trim
+    
+  - name: region
+    type: string
+    nullable: true
+    transformation: trim
+    
+  - name: status
+    type: string
+    nullable: true
+    transformation: upper_trim
+
+# SCD Type 2 columns (auto-added)
+scd_columns:
+  - effective_from
+  - effective_to
+  - is_current
+
+# Processing metadata
+metadata_columns:
+  - processed_timestamp
+  - ingestion_timestamp
+  - source_system
+  - process_id

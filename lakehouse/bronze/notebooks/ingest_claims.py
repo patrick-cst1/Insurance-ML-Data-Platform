@@ -5,16 +5,17 @@ Simplified version - no framework dependencies
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import current_timestamp, lit, to_date, col
+from pyspark.sql.functions import current_timestamp, lit, to_date, col, input_file_name
 import logging
 import yaml
+import uuid
 
 # COMMAND ----------
 
 SOURCE_PATH = "Files/samples/batch/claims.csv"
 TARGET_PATH = "Tables/bronze_claims"
 PARTITION_COLUMN = "ingestion_date"
-SCHEMA_PATH = "/lakehouse/default/Files/config/schemas/bronze_claims.yaml"
+SCHEMA_PATH = "/lakehouse/default/Files/config/schemas/bronze/bronze_claims.yaml"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -57,15 +58,21 @@ def main():
     
     try:
         logger.info(f"Reading claims from {SOURCE_PATH}")
+        # Read all columns as strings to preserve raw data (Medallion best practice)
         df = spark.read.format("csv") \
             .option("header", "true") \
-            .option("inferSchema", "true") \
+            .option("inferSchema", "false") \
             .load(SOURCE_PATH)
+        
+        # Generate unique process ID for this pipeline run
+        process_id = str(uuid.uuid4())
         
         df_enriched = df \
             .withColumn("ingestion_timestamp", current_timestamp()) \
             .withColumn("ingestion_date", to_date(current_timestamp())) \
-            .withColumn("source_system", lit("legacy_csv"))
+            .withColumn("source_system", lit("legacy_csv")) \
+            .withColumn("process_id", lit(process_id)) \
+            .withColumn("source_file_name", input_file_name())
         
         record_count = df_enriched.count()
         logger.info(f"Read {record_count} claims")

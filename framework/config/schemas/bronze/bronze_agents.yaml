@@ -1,31 +1,30 @@
 # Bronze Layer: Agents Schema Contract
-# Simplified version - demo purposes only
+# Validates column existence only (all data stored as strings)
+# Type casting happens in Silver layer
 
 table_name: bronze_agents
 layer: bronze
 
+# Required source columns (stored as strings in Bronze)
 required_columns:
   - name: agent_id
-    type: string
     nullable: false
     
   - name: name
-    type: string
     nullable: true
     
   - name: agent_type
-    type: string
     nullable: true
     
   - name: region
-    type: string
     nullable: true
     
   - name: status
-    type: string
     nullable: true
 
 metadata_columns:
   - ingestion_timestamp
   - ingestion_date
   - source_system
+  - process_id
+  - source_file_name

@@ -1,20 +1,62 @@
 # Azure Fabric notebook source
 """
 Silver Layer: Process real-time claims from Bronze Lakehouse
-Simplified version - sync from Eventstream to Silver with SCD2
+Schema-driven type casting from silver schema YAML (streaming)
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, trim, upper, when, current_timestamp, lit
+from pyspark.sql.functions import col, trim, upper, current_timestamp, lit, to_date
 import logging
+import yaml
 
 # COMMAND ----------
 
 BRONZE_PATH = "Tables/bronze_claims_events"
 SILVER_PATH = "Tables/silver_claims_realtime"
+SCHEMA_PATH = "/lakehouse/default/Files/config/schemas/silver/silver_claims_realtime.yaml"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# COMMAND ----------
+
+def apply_schema_transformations(df, schema_path):
+    """Apply type casting and transformations based on silver schema."""
+    with open(schema_path, 'r') as f:
+        schema = yaml.safe_load(f)
+    
+    for col_def in schema['business_columns']:
+        col_name = col_def['name']
+        col_type = col_def['type']
+        transformation = col_def.get('transformation', None)
+        
+        # Apply transformation first
+        if transformation == 'upper_trim':
+            df = df.withColumn(col_name, upper(trim(col(col_name))))
+        elif transformation == 'trim':
+            df = df.withColumn(col_name, trim(col(col_name)))
+        
+        # Apply type casting
+        if col_type == 'double':
+            df = df.withColumn(col_name, col(col_name).cast("double"))
+        elif col_type == 'integer':
+            df = df.withColumn(col_name, col(col_name).cast("int"))
+        elif col_type == 'date':
+            df = df.withColumn(col_name, to_date(col(col_name)))
+        
+        # Apply nullable filter
+        if not col_def['nullable']:
+            df = df.filter(col(col_name).isNotNull())
+        
+        # Apply validation rules
+        if 'validation' in col_def:
+            for rule in col_def['validation']:
+                if rule['rule'] == 'greater_than':
+                    df = df.filter(col(col_name) > rule['value'])
+                elif rule['rule'] == 'less_than':
+                    df = df.filter(col(col_name) < rule['value'])
+    
+    return df
 
 # COMMAND ----------
 
@@ -29,15 +71,15 @@ def main():
         record_count = df_bronze.count()
         logger.info(f"Read {record_count} real-time claims from Bronze")
         
-        # Data cleaning
-        df_cleaned = df_bronze \
-            .dropDuplicates(["claim_id"]) \
-            .filter(col("claim_id").isNotNull()) \
-            .filter(col("policy_id").isNotNull()) \
-            .withColumn("claim_status", upper(trim(col("claim_status")))) \
-            .withColumn("claim_amount", col("claim_amount").cast("double")) \
-            .filter(col("claim_amount") > 0) \
-            .withColumn("processed_timestamp", current_timestamp())
+        # Deduplication
+        df_cleaned = df_bronze.dropDuplicates(["claim_id"])
+        
+        # Apply schema-driven type casting and validations
+        logger.info(f"Applying silver schema transformations from {SCHEMA_PATH}")
+        df_cleaned = apply_schema_transformations(df_cleaned, SCHEMA_PATH)
+        
+        # Add processing timestamp
+        df_cleaned = df_cleaned.withColumn("processed_timestamp", current_timestamp())
         
         # Add SCD Type 2 columns
         df_cleaned = df_cleaned \
@@ -46,7 +88,14 @@ def main():
             .withColumn("is_current", lit(True))
         
         cleaned_count = df_cleaned.count()
-        logger.info(f"Cleaned records: {cleaned_count}")
+        dropped_count = record_count - cleaned_count
+        pass_rate = (cleaned_count / record_count * 100) if record_count > 0 else 0
+        
+        logger.info(f"Data Quality Metrics (Real-time):")
+        logger.info(f"  - Total records: {record_count}")
+        logger.info(f"  - Cleaned records: {cleaned_count}")
+        logger.info(f"  - Dropped records: {dropped_count}")
+        logger.info(f"  - Pass rate: {pass_rate:.2f}%")
         
         # Write to Silver with Purview metadata
         logger.info(f"Writing to {SILVER_PATH}")

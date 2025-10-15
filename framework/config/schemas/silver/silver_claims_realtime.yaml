@@ -1,0 +1,51 @@
+# Silver Layer: Real-time Claims Schema Contract
+# Defines expected types for streaming claims from Eventstream
+# Type casting enforced in Silver notebooks based on this schema
+
+table_name: silver_claims_realtime
+layer: silver
+source_table: bronze_claims_events
+source_type: eventstream
+
+# Business columns with enforced types
+business_columns:
+  - name: claim_id
+    type: string
+    nullable: false
+    
+  - name: policy_id
+    type: string
+    nullable: false
+    
+  - name: claim_amount
+    type: double
+    nullable: false
+    validation:
+      - rule: greater_than
+        value: 0
+    
+  - name: claim_status
+    type: string
+    nullable: true
+    transformation: upper_trim
+    
+  - name: claim_type
+    type: string
+    nullable: true
+    transformation: upper_trim
+
+# Event-specific columns
+event_columns:
+  - name: event_timestamp
+    type: timestamp
+    nullable: false
+
+# SCD Type 2 columns (auto-added, using event_timestamp)
+scd_columns:
+  - effective_from  # Uses event_timestamp
+  - effective_to
+  - is_current
+
+# Processing metadata
+metadata_columns:
+  - processed_timestamp

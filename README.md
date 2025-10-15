@@ -36,10 +36,16 @@ This repository provides a **simplified, demonstration-focused** Medallion archi
 
 | Feature | Description | Technology |
 |---------|-------------|------------|
-| **Batch Medallion** | CSV → Bronze → Silver → Gold (daily batch) | Delta Lake, PySpark |
+| **Batch Medallion** | CSV → Bronze (strings) → Silver (typed) → Gold (features) | Delta Lake, PySpark |
 | **Event Medallion** | Eventstream → KQL + Bronze → Silver → Gold (real-time) | Eventstream, KQL Database, Delta Lake |
-| **Schema Validation** | YAML contracts with inline enforcement | PyYAML |
+| **Bronze Raw Storage** | All columns stored as strings (inferSchema=false) | CSV Reader |
+| **Silver Type Casting** | Schema-driven: YAML defines types, transformations, validations | PySpark cast functions |
+| **Bronze Schema Validation** | YAML contracts validate column existence only | PyYAML |
+| **Silver Schema Validation** | YAML contracts define types, nullable, validation rules | PyYAML |
+| **Process Tracking** | Unique process_id & source_file_name per ingestion run | UUID, input_file_name() |
+| **Data Quality Metrics** | Pass rate logging (total, cleaned, dropped records) | PySpark inline logging |
 | **SCD Type 2** | Simplified historical tracking (effective_from, effective_to, is_current) | Delta Lake |
+| **Time-series Features** | Monthly claims aggregation for trend analysis | PySpark date functions |
 | **Dual Sink** | Real-time events → KQL (queries) + Lakehouse (ML) | Eventstream destinations |
 | **Purview Metadata** | Table descriptions via Delta properties | Delta Lake options |
 | **Deployment** | Fabric Git Integration (Azure DevOps or GitHub) | Fabric Git Integration |
@@ -112,24 +118,25 @@ sequenceDiagram
 ```
 Insurance-ML-Data-Platform/
 │
-├── lakehouse/                         # Medallion Notebooks (14 notebooks)
+├── lakehouse/                         # Medallion Notebooks (15 notebooks)
 │   ├── bronze/notebooks/              # Raw data ingestion (4 batch notebooks)
-│   │   ├── ingest_policies.py                 # Policies ingestion + schema validation
-│   │   ├── ingest_claims.py                   # Claims ingestion + schema validation
-│   │   ├── ingest_customers.py                # Customers ingestion + schema validation
-│   │   └── ingest_agents.py                   # Agents ingestion + schema validation
+│   │   ├── ingest_policies.py                 # Policies ingestion + process_id + source_file tracking
+│   │   ├── ingest_claims.py                   # Claims ingestion + process_id + source_file tracking
+│   │   ├── ingest_customers.py                # Customers ingestion + process_id + source_file tracking
+│   │   └── ingest_agents.py                   # Agents ingestion + process_id + source_file tracking
 │   │
 │   ├── silver/notebooks/              # Data cleansing (5 notebooks)
-│   │   ├── clean_policies.py                  # Clean + SCD Type 2 for policies
-│   │   ├── clean_claims.py                    # Clean + SCD Type 2 for claims
-│   │   ├── clean_customers.py                 # Clean + SCD Type 2 for customers
-│   │   ├── clean_agents.py                    # Clean + SCD Type 2 for agents
-│   │   └── process_realtime_claims.py         # Real-time claims processing
+│   │   ├── clean_policies.py                  # Clean + SCD Type 2 + DQ metrics
+│   │   ├── clean_claims.py                    # Clean + SCD Type 2 + DQ metrics
+│   │   ├── clean_customers.py                 # Clean + SCD Type 2 + DQ metrics
+│   │   ├── clean_agents.py                    # Clean + SCD Type 2 + DQ metrics
+│   │   └── process_realtime_claims.py         # Real-time claims processing + DQ metrics
 │   │
-│   └── gold/notebooks/                # ML features (4 notebooks)
+│   └── gold/notebooks/                # ML features (5 notebooks)
 │       ├── create_claims_features.py          # Batch claims aggregations
 │       ├── create_customer_features.py        # Customer features
 │       ├── create_risk_features.py            # Risk scores
+│       ├── create_monthly_claims_summary.py   # Monthly time-series aggregation
 │       └── sync_kql_to_gold.py                # KQL → Gold sync (hourly)
 │
 ├── pipelines/                         # Orchestration (2 pipelines)
@@ -138,16 +145,22 @@ Insurance-ML-Data-Platform/
 │
 ├── streaming/                         # Event Medallion (Fabric Native)
 │   ├── eventstream_claims_config.json # Eventstream dual-sink config
-│   ├── kql/
-│   │   ├── create_realtime_table.kql  # KQL table + mapping
-│   │   └── realtime_aggregations.kql  # Real-time queries
-│   └── README_EVENTSTREAM_SETUP.md    # Setup guide
+│   └── kql/
+│       ├── create_realtime_table.kql  # KQL table + mapping
+│       └── realtime_aggregations.kql  # Real-time queries
 │
-├── framework/config/schemas/          # Schema Contracts (YAML)
-│   ├── bronze_policies.yaml
-│   ├── bronze_claims.yaml
-│   ├── bronze_customers.yaml
-│   └── bronze_agents.yaml
+├── framework/config/schemas/          # Schema Contracts (YAML - organized by layer)
+│   ├── bronze/                        # Bronze layer schemas (column existence only)
+│   │   ├── bronze_policies.yaml
+│   │   ├── bronze_claims.yaml
+│   │   ├── bronze_customers.yaml
+│   │   └── bronze_agents.yaml
+│   └── silver/                        # Silver layer schemas (type casting & validation)
+│       ├── silver_policies.yaml
+│       ├── silver_claims.yaml
+│       ├── silver_customers.yaml
+│       ├── silver_agents.yaml
+│       └── silver_claims_realtime.yaml    # For streaming data
 │
 ├── devops/parameters/
 │   └── fabric.yml                     # Fabric workspace config
@@ -161,7 +174,6 @@ Insurance-ML-Data-Platform/
 │   └── streaming/
 │       └── realtime_claims_events.json # Sample event data
 │
-├── PIPELINE_TRIGGER_GUIDE.md          # Pipeline execution guide
 ├── .gitignore
 ├── LICENSE
 ├── requirements.txt                   # PySpark + Delta Lake + PyYAML
@@ -227,9 +239,9 @@ git push origin main
 
 2. **Setup Event Pipeline (Optional)**
    ```bash
-   # Follow guide: streaming/README_EVENTSTREAM_SETUP.md
+   # Follow setup steps in README (see "Eventstream Setup" section below)
    # 1. Create KQL Database: insurance_realtime
-   # 2. Run KQL script: create_realtime_table.kql
+   # 2. Run KQL script: streaming/kql/create_realtime_table.kql
    # 3. Create Eventstream: claims_eventstream (dual sink)
    # 4. Test with sample: samples/streaming/realtime_claims_events.json
    ```
@@ -253,27 +265,89 @@ git push origin main
    ```bash
    # Batch tables:
    # - lh_bronze: bronze_policies, bronze_claims, bronze_customers, bronze_agents
-   # - lh_silver: silver_* (with SCD2 columns)
-   # - lh_gold: gold_claims_features, gold_customer_features, gold_risk_features
+   #   (with process_id, source_file_name metadata)
+   # - lh_silver: silver_* (with SCD2 columns + DQ metrics logged)
+   # - lh_gold: gold_claims_features, gold_customer_features, gold_risk_features,
+   #            gold_monthly_claims_summary (NEW)
    #
    # Real-time tables:
    # - lh_bronze: bronze_claims_events (Eventstream sink)
-   # - lh_silver: silver_claims_realtime (with SCD2)
+   # - lh_silver: silver_claims_realtime (with SCD2 + DQ metrics)
    # - lh_gold: gold_realtime_claims_features (KQL sync)
    # - KQL DB: claims_events, claims_hourly (materialized view)
    ```
 
 ## 📚 Code Examples
 
-### Schema Validation (Inline)
+### 1. Bronze Layer: Raw String Storage (Best Practice)
 
-All Bronze notebooks validate against YAML schemas:
+All Bronze notebooks read data as strings to preserve raw data integrity:
 
+```python
+import uuid
+from pyspark.sql.functions import input_file_name, lit
+
+# Read all columns as strings (Medallion best practice)
+df = spark.read.format("csv") \
+    .option("header", "true") \
+    .option("inferSchema", "false") \
+    .load(SOURCE_PATH)
+
+# Generate unique process ID for pipeline run tracking
+process_id = str(uuid.uuid4())
+
+df_enriched = df \
+    .withColumn("ingestion_timestamp", current_timestamp()) \
+    .withColumn("ingestion_date", to_date(current_timestamp())) \
+    .withColumn("source_system", lit("legacy_csv")) \
+    .withColumn("process_id", lit(process_id)) \
+    .withColumn("source_file_name", input_file_name())
+```
+
+**Why String Storage in Bronze?**
+- ✅ Prevents data loss from source schema changes
+- ✅ Preserves raw data exactly as received
+- ✅ Enables reprocessing without re-reading source
+- ✅ Follows Medallion architecture best practices
+
+**Metadata Columns Added:**
+- `ingestion_timestamp`: Exact ingestion time
+- `ingestion_date`: Partition column for date-based queries
+- `source_system`: Data source identifier
+- `process_id`: Unique UUID tracking pipeline run
+- `source_file_name`: Full path of source file
+
+### 2. Schema Validation (Column Existence Only)
+
+Bronze YAML schemas validate column existence only (no type checking):
+
+```yaml
+# bronze_claims.yaml
+# Validates column existence only (all data stored as strings)
+# Type casting happens in Silver layer
+
+table_name: bronze_claims
+layer: bronze
+
+required_columns:
+  - name: claim_id
+    nullable: false
+  - name: claim_amount
+    nullable: false
+  # Note: No 'type' field - all stored as strings
+
+metadata_columns:
+  - ingestion_timestamp
+  - process_id
+  - source_file_name
+```
+
+**Validation Logic:**
 ```python
 import yaml
 
 def validate_schema(df, schema_path):
-    """Simplified inline schema validation."""
+    """Validates column existence only."""
     with open(schema_path, 'r') as f:
         schema = yaml.safe_load(f)
     
@@ -291,12 +365,75 @@ def validate_schema(df, schema_path):
     
     logger.info("✓ Schema validation passed")
     return True
-
-# Usage
-validate_schema(df_enriched, "/lakehouse/default/Files/config/schemas/bronze_policies.yaml")
 ```
 
-### SCD Type 2 Implementation (Simplified)
+### 3. Silver Layer: Schema-Driven Type Casting
+
+Silver YAML schemas define types, transformations, and validation rules:
+
+```yaml
+# silver_claims.yaml
+business_columns:
+  - name: claim_amount
+    type: double
+    nullable: false
+    validation:
+      - rule: greater_than
+        value: 0
+  
+  - name: claim_status
+    type: string
+    nullable: true
+    transformation: upper_trim  # Apply upper() + trim()
+  
+  - name: age
+    type: integer
+    nullable: false
+    validation:
+      - rule: greater_than
+        value: 0
+      - rule: less_than
+        value: 120
+```
+
+**Schema-Driven Processing:**
+```python
+def apply_schema_transformations(df, schema_path):
+    """Apply type casting based on silver schema YAML."""
+    with open(schema_path, 'r') as f:
+        schema = yaml.safe_load(f)
+    
+    for col_def in schema['business_columns']:
+        # 1. Apply transformations (trim, upper_trim)
+        if col_def.get('transformation') == 'upper_trim':
+            df = df.withColumn(col_name, upper(trim(col(col_name))))
+        
+        # 2. Apply type casting
+        if col_def['type'] == 'double':
+            df = df.withColumn(col_name, col(col_name).cast("double"))
+        
+        # 3. Apply nullable filters
+        if not col_def['nullable']:
+            df = df.filter(col(col_name).isNotNull())
+        
+        # 4. Apply validation rules
+        for rule in col_def.get('validation', []):
+            if rule['rule'] == 'greater_than':
+                df = df.filter(col(col_name) > rule['value'])
+    
+    return df
+
+# Usage in Silver notebooks
+df_cleaned = apply_schema_transformations(df_bronze, SCHEMA_PATH)
+```
+
+**Benefits:**
+- ✅ Type casting logic defined in YAML, not hardcoded
+- ✅ Easy to update validation rules without changing code
+- ✅ Consistent transformation logic across all Silver notebooks
+- ✅ Schema serves as documentation
+
+### 4. SCD Type 2 Implementation (Simplified)
 
 All Silver notebooks include basic SCD2 tracking:
 
@@ -308,7 +445,33 @@ df_cleaned = df_cleaned \
     .withColumn("is_current", lit(True))
 ```
 
-### Purview Metadata Integration
+### 5. Gold Layer: Monthly Time-series Aggregation
+
+New monthly claims summary for trend analysis:
+
+```python
+from pyspark.sql.functions import year, month, date_trunc
+
+# Filter current records only (SCD Type 2)
+df_current = df_claims.filter(col("is_current") == True)
+
+# Add year-month columns
+df_with_period = df_current \
+    .withColumn("claim_year", year(col("claim_date"))) \
+    .withColumn("claim_month", month(col("claim_date"))) \
+    .withColumn("claim_year_month", date_trunc("month", col("claim_date")))
+
+# Monthly aggregations
+monthly_summary = df_with_period.groupBy("claim_year_month", "claim_year", "claim_month").agg(
+    count("claim_id").alias("total_claims"),
+    sum("claim_amount").alias("total_claim_amount"),
+    avg("claim_amount").alias("avg_claim_amount"),
+    max("claim_amount").alias("max_claim_amount"),
+    min("claim_amount").alias("min_claim_amount")
+)
+```
+
+### 6. Purview Metadata Integration
 
 Table descriptions are added via Delta table properties:
 
@@ -332,40 +495,86 @@ Simplified dual Medallion architecture for demonstration:
 1. **Dual Medallion Data Flow**
    
    **Batch Pipeline (Daily):**
-   - **Bronze Layer**: CSV ingestion with schema validation (4 notebooks)
-   - **Silver Layer**: Data cleaning + SCD Type 2 (4 notebooks)
-   - **Gold Layer**: Feature aggregations (3 notebooks)
+   - **Bronze Layer**: CSV ingestion with schema validation + process tracking (4 notebooks)
+   - **Silver Layer**: Data cleaning + SCD Type 2 + DQ metrics (4 notebooks)
+   - **Gold Layer**: Feature aggregations + time-series analysis (4 notebooks)
    
    **Event Pipeline (Real-time):**
    - **Eventstream**: Dual-sink to KQL Database + Bronze Lakehouse
    - **KQL Database**: Low-latency real-time queries (<1s)
-   - **Silver Layer**: Process events with SCD Type 2 (1 notebook)
+   - **Silver Layer**: Process events with SCD Type 2 + DQ metrics (1 notebook)
    - **Gold Layer**: Sync KQL aggregations hourly (1 notebook)
 
-2. **Schema Validation**
-   - YAML-based schema contracts (1 file per table)
-   - Inline enforcement in Bronze notebooks
-   - Validates: column existence, nullable constraints
+2. **Bronze Layer: String Storage (Best Practice)**
+   - **All columns stored as strings**: `inferSchema=false` prevents data loss
+   - **Raw data preservation**: Exactly as received from source systems
+   - **Schema change resilience**: Source type changes don't break ingestion
+   - **Reprocessing capability**: Can reprocess without re-reading source
+   - Follows Medallion architecture best practices for immutable raw data
 
-3. **SCD Type 2 Tracking**
+3. **Process Tracking & Data Lineage**
+   - **process_id**: Unique UUID for each pipeline run
+   - **source_file_name**: Full path of ingested file via `input_file_name()`
+   - **ingestion_timestamp**: Exact ingestion time
+   - **ingestion_date**: Partition column for time-based queries
+   - Enables complete audit trail and reprocessing capabilities
+
+4. **Schema Validation (Two-Layer Approach)**
+   
+   **Bronze Schemas** (`bronze/*.yaml`):
+   - Validates column existence and nullable constraints only
+   - **No type validation** (all data stored as strings)
+   - Ensures source data has expected columns
+   
+   **Silver Schemas** (`silver/*.yaml`):
+   - Defines target types (`string`, `int`, `double`, `date`)
+   - Specifies transformations (`trim`, `upper_trim`)
+   - Declares validation rules (`greater_than`, `less_than`)
+   - Documents expected business logic
+   
+5. **Silver Layer: Schema-Driven Type Casting**
+   - **YAML-driven transformations**: Type casting logic defined in silver schemas
+   - **Reusable function**: `apply_schema_transformations(df, schema_path)`
+   - **Safe type conversion**: Automatic casting based on schema definitions
+   - **Invalid value filtering**: Schema-defined validation rules
+   - **Consistent logic**: Same transformation function for batch & streaming
+   - All type enforcement happens in Silver, not Bronze
+
+6. **Streaming Schema Validation (NEW)**
+   - **Real-time schema enforcement**: Streaming data follows same pattern as batch
+   - **silver_claims_realtime.yaml**: Dedicated schema for Eventstream data
+   - **Consistent DQ**: Same validation rules for real-time & batch pipelines
+   - **Industry best practice**: Schema validation for streaming prevents bad data
+
+7. **Data Quality Metrics**
+   - **Pass rate logging**: Calculate % of records passing validation
+   - **Dropped records tracking**: Monitor filtered records count
+   - **Type casting failures**: Tracked in dropped count
+   - **Real-time DQ metrics**: Applied to both batch and streaming pipelines
+   - Format: "Total: X | Cleaned: Y | Dropped: Z | Pass Rate: W%"
+
+8. **SCD Type 2 Tracking**
    - Simplified historical tracking with `effective_from`, `effective_to`, `is_current` columns
    - Applied to all Silver tables (batch + real-time)
+   - Enables point-in-time queries and historical analysis
 
-4. **Dual Sink Architecture**
+9. **Time-series Features (NEW)**
+   - **Monthly claims aggregation**: Trend analysis by year-month
+   - **Metrics**: total_claims, total_amount, avg_amount, max_amount, min_amount
+   - **Gold table**: `gold_monthly_claims_summary`
+   - Filters only current records (SCD Type 2 aware)
+
+10. **Dual Sink Architecture**
    - **KQL Database**: Real-time monitoring dashboards
    - **Lakehouse**: Historical ML training data
    - Single Eventstream → both destinations
 
-5. **Data Quality**
-   - Schema validation (Bronze)
-   - Basic inline checks (null, duplicates)
-   - No complex framework dependencies
-
-6. **Purview Integration**
+11. **Purview Integration**
    - Table descriptions via Delta `.option("description", "...")`
    - Auto-sync to Purview Hub for data catalog
+   - Enhanced metadata for all layers
 
-7. **Deployment**
+12. **Deployment**
    - Fabric Git Integration (recommended)
    - Auto-sync on git push
    - No manual deployment scripts needed
@@ -681,6 +890,31 @@ Follow steps in **Eventstream Setup** section above.
 - Re-run Silver pipeline
 - Check `is_current = true` for latest records
 
+#### Issue 7: Monthly Claims Summary Fails
+
+**Error:** `AnalysisException: Column 'claim_date' not found`
+
+**Solution:**
+- Ensure Silver claims table has `claim_date` column (added in v1.1)
+- Re-run Bronze ingestion to capture `claim_date` from source
+- Check `clean_claims.py` includes: `.withColumn("claim_date", to_date(col("claim_date")))`
+- Verify Bronze CSV has `claim_date` column
+
+#### Issue 8: Process ID or Source File Name Missing
+
+**Error:** Bronze tables missing `process_id` or `source_file_name` columns
+
+**Solution:**
+- Verify Bronze notebooks import: `import uuid` and `from pyspark.sql.functions import input_file_name`
+- Check metadata enrichment code includes:
+  ```python
+  process_id = str(uuid.uuid4())
+  .withColumn("process_id", lit(process_id))
+  .withColumn("source_file_name", input_file_name())
+  ```
+- Re-run Bronze ingestion pipeline
+- Update YAML schemas to include new metadata columns
+
 ### Pipeline Execution Checklist
 
 **Before First Run:**
@@ -702,21 +936,34 @@ Follow steps in **Eventstream Setup** section above.
 
 This is a **simplified demonstration platform**. The following limitations are intentional for ease of use:
 
-1. **Schema Validation**: Basic column existence + nullable checks only (no data type enforcement or complex constraints)
-2. **SCD Type 2**: Simplified append-only with `is_current` flag (no merge logic for updates)
-3. **Incremental Processing**: Full refresh mode for simplicity (not optimized for large-scale production)
-4. **Data Quality**: Inline logging and basic checks only (no comprehensive DQ dashboard)
-5. **Eventstream Setup**: Requires manual creation via Fabric UI (Fabric platform limitation - not Git-supported)
-6. **Authentication**: Assumes Fabric workspace access (no explicit credential management)
+1. **SCD Type 2**: Simplified append-only with `is_current` flag (no merge logic for updates)
+2. **Incremental Processing**: Full refresh mode for simplicity (not optimized for large-scale production)
+3. **Data Quality**: Inline logging and basic checks only (no comprehensive DQ dashboard)
+4. **Eventstream Setup**: Requires manual creation via Fabric UI (Fabric platform limitation - not Git-supported)
+5. **Authentication**: Assumes Fabric workspace access (no explicit credential management)
 
 **These are acceptable tradeoffs for a demonstration and learning platform** ✅
 
-For production use, consider:
+### ✨ Recent Enhancements (v1.2 - Schema-Driven Architecture)
+
+The platform now follows production-grade schema-driven medallion patterns:
+
+✅ **Organized Schema Structure**: `bronze/` and `silver/` subdirectories  
+✅ **Schema-Driven Type Casting**: YAML defines types, transformations, validations  
+✅ **Reusable Transformation Logic**: `apply_schema_transformations()` function  
+✅ **Streaming Schema Validation**: Real-time data follows same pattern as batch  
+✅ **Bronze String Storage**: All columns stored as strings (`inferSchema=false`)  
+✅ **Process Tracking**: `process_id` + `source_file_name` for complete audit trail  
+✅ **Data Quality Metrics**: Pass rate logging including type casting failures  
+✅ **Time-series Analysis**: Monthly claims aggregation for trend analysis  
+
+### For production use, consider:
 - Implementing full Delta merge operations for SCD2
 - Adding comprehensive data quality framework (e.g., Great Expectations)
 - Implementing incremental processing with watermarks
 - Setting up proper authentication and secrets management
 - Creating real-time monitoring dashboards
+- Implementing data quality gates and alerting
 
 ---
 

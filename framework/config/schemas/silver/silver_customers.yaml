@@ -1,0 +1,49 @@
+# Silver Layer: Customers Schema Contract
+# Defines expected types after Bronze to Silver transformation
+# Type casting enforced in Silver notebooks based on this schema
+
+table_name: silver_customers
+layer: silver
+source_table: bronze_customers
+
+# Business columns with enforced types
+business_columns:
+  - name: customer_id
+    type: string
+    nullable: false
+    
+  - name: age
+    type: integer
+    nullable: false
+    validation:
+      - rule: greater_than
+        value: 0
+      - rule: less_than
+        value: 120
+    
+  - name: gender
+    type: string
+    nullable: true
+    transformation: upper_trim
+    
+  - name: location
+    type: string
+    nullable: true
+    transformation: trim
+    
+  - name: join_date
+    type: date
+    nullable: true
+
+# SCD Type 2 columns (auto-added)
+scd_columns:
+  - effective_from
+  - effective_to
+  - is_current
+
+# Processing metadata
+metadata_columns:
+  - processed_timestamp
+  - ingestion_timestamp
+  - source_system
+  - process_id
