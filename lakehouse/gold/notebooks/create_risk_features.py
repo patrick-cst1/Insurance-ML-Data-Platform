@@ -1,70 +1,68 @@
 # Azure Fabric notebook source
-"""Gold Layer: Create risk assessment features"""
+"""Gold Layer: Create risk assessment features
+Simplified version - no framework dependencies
+"""
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, when, coalesce, lit
-import sys
-import os
+from pyspark.sql.functions import col, when, coalesce, lit, current_timestamp
+import logging
 
-sys.path.append("/Workspace/framework/libs")
-sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
-from delta_ops import read_delta, write_delta
-from purview_integration import PurviewMetadata
-from feature_utils import add_feature_metadata
-from logging_utils import get_logger, PipelineTimer
+# COMMAND ----------
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # COMMAND ----------
 
 def main():
-    logger = get_logger("gold_risk_features")
     spark = SparkSession.builder.getOrCreate()
     
-    with PipelineTimer(logger, "create_risk_features"):
-        
+    try:
         # Read Silver policies and claims features
-        df_policies = read_delta(spark, "Tables/silver_policies").filter(col("is_current") == lit(True))
-        logger.info(f"Read {df_policies.count()} current policies from Silver layer")
+        logger.info("Reading policies and claims features")
+        df_policies = spark.read.format("delta").load("Tables/silver_policies")
+        df_claims_features = spark.read.format("delta").load("Tables/gold_claims_features")
         
-        df_claims_features = read_delta(spark, "Tables/gold_claims_features")
+        logger.info(f"Read {df_policies.count()} policies from Silver layer")
         
         # Join claims features with policies
         risk_features = df_policies.join(df_claims_features, on="customer_id", how="left")
         
-        # Calculate overall risk score based on claims history
-        # Normalized to 0-100 scale
+        # Calculate simple risk score based on claims history (0-100 scale)
         risk_features = risk_features \
             .withColumn("claims_risk_component", 
-                       (coalesce(col("claims_count_365d"), 0) * 5).cast("double")) \
+                       (coalesce(col("total_claims"), lit(0)) * 10).cast("double")) \
             .withColumn("amount_risk_component",
-                       when(col("claim_amount_sum_365d") > 50000, 40)
-                       .when(col("claim_amount_sum_365d") > 10000, 20)
+                       when(col("total_claim_amount") > 50000, 40)
+                       .when(col("total_claim_amount") > 10000, 20)
                        .otherwise(0).cast("double")) \
             .withColumn("overall_risk_score", 
-                       when((lit(50) + 
+                       when((lit(30) + 
                             col("claims_risk_component") + 
                             col("amount_risk_component")) > 100, 100)
-                       .otherwise(lit(50) + 
+                       .otherwise(lit(30) + 
                                  col("claims_risk_component") + 
                                  col("amount_risk_component"))
                        .cast("double")) \
-            .withColumn("high_value_claim_ratio", 
-                       when(col("claims_count_365d") > 0, 
-                            col("claim_amount_max_365d") / col("claim_amount_sum_365d")).otherwise(0.0)) \
+            .withColumn("feature_timestamp", current_timestamp()) \
             .drop("claims_risk_component", "amount_risk_component")
         
-        risk_features = add_feature_metadata(risk_features)
+        feature_count = risk_features.count()
+        logger.info(f"Created risk features for {feature_count} policies")
         
-        logger.info(f"Created risk features for {risk_features.count()} policies")
+        # Write to Gold with Purview metadata
+        logger.info("Writing to Tables/gold_risk_features")
+        risk_features.write \
+            .format("delta") \
+            .mode("overwrite") \
+            .option("description", "Gold layer: Risk assessment features for ML") \
+            .save("Tables/gold_risk_features")
         
-        metadata = PurviewMetadata.get_gold_metadata("gold_risk_features", feature_type="risk")
-        write_delta(
-            df=risk_features,
-            path="Tables/gold_risk_features",
-            mode="overwrite",
-            description=metadata["description"],
-            tags=metadata["tags"]
-        )
-        logger.info("Risk features creation completed")
+        logger.info("✓ Risk features creation completed")
+        
+    except Exception as e:
+        logger.error(f"✗ Failed to create risk features: {str(e)}")
+        raise
 
 # COMMAND ----------
 

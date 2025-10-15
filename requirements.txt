@@ -1,18 +1,9 @@
-# Core dependencies for Microsoft Fabric
+# Simplified dependencies for Microsoft Fabric
+# Note: These are pre-installed in Fabric runtime - listed for reference only
+
 pyspark==3.5.0
 delta-spark==3.0.0
 
-# Azure SDK
-azure-identity==1.15.0
-azure-keyvault-secrets==4.7.0
-
-# Data quality validation
-great-expectations==0.18.8
-pyyaml==6.0.1
-
-# Utilities
-python-dateutil==2.8.2
-requests==2.31.0
-
-# Note: All testing and deployment are performed in Fabric/Azure Portal
-# No local development dependencies required
+# All development and testing are performed directly in Microsoft Fabric workspace
+# No framework libraries or external dependencies required
+# Deployment via Fabric Git Integration (recommended)

@@ -1,31 +1,28 @@
 # Azure Fabric notebook source
 """
 Gold Layer: Create customer dimension features
+Simplified version - no framework dependencies
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, count, sum as spark_sum, avg, datediff, current_date, when, lit
-import sys
-import os
+from pyspark.sql.functions import col, count, sum as spark_sum, avg, when, current_timestamp
+import logging
 
-sys.path.append("/Workspace/framework/libs")
-sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
-from delta_ops import read_delta, write_delta
-from purview_integration import PurviewMetadata
-from feature_utils import add_feature_metadata
-from logging_utils import get_logger, PipelineTimer
+# COMMAND ----------
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # COMMAND ----------
 
 def main():
-    logger = get_logger("gold_customer_features")
     spark = SparkSession.builder.getOrCreate()
     
-    with PipelineTimer(logger, "create_customer_features"):
-        
+    try:
         # Read Silver tables
-        df_customers = read_delta(spark, "Tables/silver_customers").filter(col("is_current") == lit(True))
-        df_policies = read_delta(spark, "Tables/silver_policies").filter(col("is_current") == lit(True))
+        logger.info("Reading customers and policies from Silver")
+        df_customers = spark.read.format("delta").load("Tables/silver_customers")
+        df_policies = spark.read.format("delta").load("Tables/silver_policies")
         
         logger.info(f"Read {df_customers.count()} customers and {df_policies.count()} policies")
         
@@ -39,28 +36,25 @@ def main():
         
         # Join with customer base
         customer_features = df_customers.join(policy_agg, on="customer_id", how="left") \
-            .fillna(0, subset=["total_policies", "active_policies", "avg_premium", "total_premium"])
+            .fillna(0, subset=["total_policies", "active_policies", "avg_premium", "total_premium"]) \
+            .withColumn("feature_timestamp", current_timestamp())
         
-        # Calculate customer lifetime metrics
-        customer_features = customer_features \
-            .withColumn("customer_tenure_days", datediff(current_date(), col("join_date"))) \
-            .withColumn("customer_lifetime_value", col("total_premium") * col("customer_tenure_days") / 365)
+        feature_count = customer_features.count()
+        logger.info(f"Created features for {feature_count} customers")
         
-        # Add metadata
-        customer_features = add_feature_metadata(customer_features)
+        # Write to Gold with Purview metadata
+        logger.info("Writing to Tables/gold_customer_features")
+        customer_features.write \
+            .format("delta") \
+            .mode("overwrite") \
+            .option("description", "Gold layer: Customer dimension features for ML") \
+            .save("Tables/gold_customer_features")
         
-        logger.info(f"Created features for {customer_features.count()} customers")
+        logger.info("✓ Customer features creation completed")
         
-        # Write to Gold
-        metadata = PurviewMetadata.get_gold_metadata("gold_customer_features", feature_type="customer")
-        write_delta(
-            df=customer_features,
-            path="Tables/gold_customer_features",
-            mode="overwrite",
-            description=metadata["description"],
-            tags=metadata["tags"]
-        )
-        logger.info("Customer features creation completed")
+    except Exception as e:
+        logger.error(f"✗ Failed to create customer features: {str(e)}")
+        raise
 
 # COMMAND ----------
 

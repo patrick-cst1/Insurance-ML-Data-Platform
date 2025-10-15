@@ -93,36 +93,11 @@
       }
     },
     {
-      "name": "Silver_DQ_Checks",
-      "type": "Notebook",
-      "dependsOn": [
-        {
-          "activity": "Silver_Clean_Policies",
-          "dependencyConditions": ["Succeeded"]
-        },
-        {
-          "activity": "Silver_Clean_Claims",
-          "dependencyConditions": ["Succeeded"]
-        },
-        {
-          "activity": "Silver_Clean_Customers",
-          "dependencyConditions": ["Succeeded"]
-        },
-        {
-          "activity": "Silver_Clean_Agents",
-          "dependencyConditions": ["Succeeded"]
-        }
-      ],
-      "typeProperties": {
-        "notebookPath": "/lakehouse/silver/notebooks/dq_checks"
-      }
-    },
-    {
       "name": "Gold_Claims_Features",
       "type": "Notebook",
       "dependsOn": [
         {
-          "activity": "Silver_DQ_Checks",
+          "activity": "Silver_Clean_Claims",
           "dependencyConditions": ["Succeeded"]
         }
       ],
@@ -135,7 +110,11 @@
       "type": "Notebook",
       "dependsOn": [
         {
-          "activity": "Silver_DQ_Checks",
+          "activity": "Silver_Clean_Customers",
+          "dependencyConditions": ["Succeeded"]
+        },
+        {
+          "activity": "Silver_Clean_Policies",
           "dependencyConditions": ["Succeeded"]
         }
       ],

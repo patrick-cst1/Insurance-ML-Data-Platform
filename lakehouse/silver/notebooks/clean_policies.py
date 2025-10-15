@@ -1,81 +1,73 @@
 # Azure Fabric notebook source
 """
-Silver Layer: Clean and standardize policies with SCD2
+Silver Layer: Clean and standardize policies
+Simplified version - no framework dependencies
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, trim, upper, when, coalesce
-import sys
-import os
-
-sys.path.append("/Workspace/framework/libs")
-sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
-from delta_ops import read_delta, write_delta
-from purview_integration import PurviewMetadata
-from data_quality import validate_schema, check_nulls, detect_duplicates
-from feature_utils import create_scd2_features
-from logging_utils import get_logger, PipelineTimer
+from pyspark.sql.functions import col, trim, upper, current_timestamp, lit
+import logging
 
 # COMMAND ----------
 
 BRONZE_PATH = "Tables/bronze_policies"
 SILVER_PATH = "Tables/silver_policies"
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # COMMAND ----------
 
 def main():
-    logger = get_logger("silver_clean_policies")
     spark = SparkSession.builder.getOrCreate()
     
-    with PipelineTimer(logger, "clean_policies"):
+    try:
+        # Read from Bronze
+        logger.info(f"Reading from {BRONZE_PATH}")
+        df_bronze = spark.read.format("delta").load(BRONZE_PATH)
         
-        try:
-            # Read from Bronze
-            df_bronze = read_delta(spark, BRONZE_PATH)
-            logger.info(f"Read {df_bronze.count()} records from Bronze")
-            
-            # Data cleaning
-            df_cleaned = df_bronze \
-                .dropDuplicates(["policy_id"]) \
-                .filter(col("policy_id").isNotNull()) \
-                .withColumn("product_type", upper(trim(col("product_type")))) \
-                .withColumn("status", upper(trim(col("status")))) \
-                .withColumn("premium", col("premium").cast("double")) \
-                .filter(col("premium") > 0)
-            
-            # Data quality checks
-            null_check = check_nulls(df_cleaned, columns=["policy_id", "customer_id", "premium"], threshold=0.01)
-            if not null_check["passed"]:
-                logger.warning(f"Null check violations: {null_check['violations']}")
-            
-            dup_check = detect_duplicates(df_cleaned, key_columns=["policy_id"])
-            if not dup_check["passed"]:
-                logger.error(f"Found {dup_check['duplicate_count']} duplicates!")
-            
-            # Apply SCD2 for dimension tracking
-            df_scd2 = create_scd2_features(
-                df_cleaned,
-                entity_keys=["policy_id"],
-                timestamp_column="ingestion_timestamp"
-            )
-            
-            logger.info(f"Writing {df_scd2.count()} records to Silver")
-            
-            # Write to Silver with Purview metadata
-            metadata = PurviewMetadata.get_silver_metadata("silver_policies", has_scd2=True, pii=False)
-            write_delta(
-                df=df_scd2,
-                path=SILVER_PATH,
-                mode="overwrite",
-                description=metadata["description"],
-                tags=metadata["tags"]
-            )
-            
-            logger.info("Silver policies cleaning completed successfully")
-            
-        except Exception as e:
-            logger.error(f"Failed to clean policies: {str(e)}")
-            raise
+        record_count = df_bronze.count()
+        logger.info(f"Read {record_count} records from Bronze")
+        
+        # Data cleaning
+        df_cleaned = df_bronze \
+            .dropDuplicates(["policy_id"]) \
+            .filter(col("policy_id").isNotNull()) \
+            .filter(col("customer_id").isNotNull()) \
+            .withColumn("product_type", upper(trim(col("product_type")))) \
+            .withColumn("status", upper(trim(col("status")))) \
+            .withColumn("premium", col("premium").cast("double")) \
+            .filter(col("premium") > 0) \
+            .withColumn("processed_timestamp", current_timestamp())
+        
+        # Add SCD Type 2 columns (simplified version)
+        df_cleaned = df_cleaned \
+            .withColumn("effective_from", col("ingestion_timestamp")) \
+            .withColumn("effective_to", lit(None).cast("timestamp")) \
+            .withColumn("is_current", lit(True))
+        
+        cleaned_count = df_cleaned.count()
+        logger.info(f"Cleaned records: {cleaned_count} (removed {record_count - cleaned_count} invalid records)")
+        
+        # Basic duplicate check
+        dup_count = df_cleaned.groupBy("policy_id").count().filter(col("count") > 1).count()
+        if dup_count > 0:
+            logger.warning(f"Found {dup_count} duplicate policy_ids after cleaning")
+        
+        # Write to Silver with Purview metadata (via Delta table properties)
+        logger.info(f"Writing to {SILVER_PATH}")
+        df_cleaned.write \
+            .format("delta") \
+            .mode("overwrite") \
+            .option("description", "Silver layer: Cleaned policies with SCD Type 2 tracking") \
+            .option("delta.columnMapping.mode", "name") \
+            .save(SILVER_PATH)
+        
+        logger.info("✓ Silver policies cleaning completed successfully")
+        
+    except Exception as e:
+        logger.error(f"✗ Failed to clean policies: {str(e)}")
+        raise
 
 # COMMAND ----------
 

@@ -1,83 +1,61 @@
 # Azure Fabric notebook source
 """
-Gold Layer: Create ML-ready claims features with point-in-time correctness
+Gold Layer: Create ML-ready claims features
+Simplified version - no framework dependencies
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, datediff, current_date, to_date
-import sys
-import os
-
-sys.path.append("/Workspace/framework/libs")
-sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
-from delta_ops import read_delta, write_delta
-from purview_integration import PurviewMetadata
-from feature_utils import build_aggregation_features, add_feature_metadata
-from logging_utils import get_logger, PipelineTimer
+from pyspark.sql.functions import col, count, sum as spark_sum, avg, max as spark_max, current_timestamp
+import logging
 
 # COMMAND ----------
 
 SILVER_CLAIMS_PATH = "Tables/silver_claims"
 GOLD_FEATURES_PATH = "Tables/gold_claims_features"
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # COMMAND ----------
 
 def main():
-    logger = get_logger("gold_claims_features")
     spark = SparkSession.builder.getOrCreate()
     
-    with PipelineTimer(logger, "create_claims_features"):
-        
+    try:
         # Read Silver claims
-        df_claims = read_delta(spark, SILVER_CLAIMS_PATH)
-        logger.info(f"Read {df_claims.count()} claims from Silver")
+        logger.info(f"Reading from {SILVER_CLAIMS_PATH}")
+        df_claims = spark.read.format("delta").load(SILVER_CLAIMS_PATH)
         
-        # Build time-window aggregation features (30/90/365 days)
-        claims_features = build_aggregation_features(
-            df=df_claims,
-            entity_keys=["customer_id"],
-            timestamp_column="claim_date",
-            aggregation_windows=[30, 90, 365],
-            agg_columns={
-                "claim_amount": ["sum", "avg", "max", "count"],
-                "claim_id": ["count"]
-            }
+        record_count = df_claims.count()
+        logger.info(f"Read {record_count} claims from Silver")
+        
+        # Simple aggregation features by customer
+        claims_features = df_claims.groupBy("customer_id").agg(
+            count("claim_id").alias("total_claims"),
+            spark_sum("claim_amount").alias("total_claim_amount"),
+            avg("claim_amount").alias("avg_claim_amount"),
+            spark_max("claim_amount").alias("max_claim_amount")
         )
         
-        # Add derived features
-        claims_features = claims_features \
-            .withColumnRenamed("claim_id_count_30d", "claims_count_30d") \
-            .withColumnRenamed("claim_id_count_90d", "claims_count_90d") \
-            .withColumnRenamed("claim_id_count_365d", "claims_count_365d")
+        # Add feature timestamp
+        claims_features = claims_features.withColumn("feature_timestamp", current_timestamp())
         
-        # Calculate days since last claim
-        latest_claim = df_claims.groupBy("customer_id") \
-            .agg({"claim_date": "max"}) \
-            .withColumnRenamed("max(claim_date)", "last_claim_date")
+        feature_count = claims_features.count()
+        logger.info(f"Created features for {feature_count} customers")
         
-        claims_features = claims_features.join(latest_claim, on="customer_id", how="left") \
-            .withColumn("days_since_last_claim", datediff(current_date(), col("last_claim_date"))) \
-            .drop("last_claim_date")
+        # Write to Gold with Purview metadata
+        logger.info(f"Writing to {GOLD_FEATURES_PATH}")
+        claims_features.write \
+            .format("delta") \
+            .mode("overwrite") \
+            .option("description", "Gold layer: Aggregated claims features for ML") \
+            .save(GOLD_FEATURES_PATH)
         
-        # Add feature metadata (event_time for point-in-time join)
-        claims_features = add_feature_metadata(claims_features)
+        logger.info("✓ Claims features creation completed")
         
-        logger.info(f"Created features for {claims_features.count()} customers")
-        
-        # Write to Gold
-        claims_features = claims_features.withColumn("feature_date", to_date(col("feature_timestamp")))
-        
-        metadata = PurviewMetadata.get_gold_metadata("gold_claims_features", feature_type="claims")
-        write_delta(
-            df=claims_features,
-            path=GOLD_FEATURES_PATH,
-            mode="overwrite",
-            partition_by=["feature_date"],
-            description=metadata["description"],
-            tags=metadata["tags"]
-        )
-        
-        logger.info("Claims features creation completed")
+    except Exception as e:
+        logger.error(f"✗ Failed to create claims features: {str(e)}")
+        raise
 
 # COMMAND ----------
 

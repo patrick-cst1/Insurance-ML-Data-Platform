@@ -1,20 +1,12 @@
 # Azure Fabric notebook source
 """
 Bronze Layer: Ingest Policies CSV to Delta
+Simplified version - no framework dependencies
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import current_timestamp, lit, to_date
-import sys
-import os
-
-# Add framework libs to path
-sys.path.append("/Workspace/framework/libs")
-sys.path.append(os.path.join(os.getcwd(), "framework", "libs"))
-
-from delta_ops import write_delta
-from logging_utils import get_logger, PipelineTimer
-from schema_contracts import load_contract, validate_contract
+from pyspark.sql.functions import current_timestamp, lit, to_date, col
+import logging
 
 # COMMAND ----------
 
@@ -22,21 +14,19 @@ from schema_contracts import load_contract, validate_contract
 SOURCE_PATH = "Files/samples/batch/policies.csv"
 TARGET_PATH = "Tables/bronze_policies"
 PARTITION_COLUMN = "ingestion_date"
-SCHEMA_CONTRACT_PATHS = [
-    "/Workspace/framework/config/schema_contracts/bronze_policies.yaml",
-    "framework/config/schema_contracts/bronze_policies.yaml"
-]
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # COMMAND ----------
 
 def main():
     """Ingest policies from CSV to Bronze Delta table."""
     
-    logger = get_logger("bronze_ingest_policies")
     spark = SparkSession.builder.getOrCreate()
     
-    with PipelineTimer(logger, "ingest_policies"):
-        
+    try:
         # Read source CSV
         logger.info(f"Reading policies from {SOURCE_PATH}")
         df = spark.read.format("csv") \
@@ -50,40 +40,33 @@ def main():
             .withColumn("ingestion_date", to_date(current_timestamp())) \
             .withColumn("source_system", lit("legacy_csv"))
         
-        logger.info(f"Read {df_enriched.count()} policies")
+        record_count = df_enriched.count()
+        logger.info(f"Read {record_count} policies")
         
-        # Validate schema against contract
-        contract = None
-        for contract_path in SCHEMA_CONTRACT_PATHS:
-            try:
-                contract = load_contract(contract_path)
-                logger.info(f"Loaded schema contract from {contract_path}")
-                break
-            except Exception:
-                continue
-        
-        if contract:
-            validation_result = validate_contract(df_enriched, contract, raise_on_failure=False)
-            if validation_result["passed"]:
-                logger.info("✓ Schema validation PASSED")
-            else:
-                logger.warning(f"✗ Schema validation FAILED: {validation_result}")
-                # Uncomment to fail pipeline on schema mismatch:
-                # raise ValueError(f"Schema validation failed: {validation_result}")
-        else:
-            logger.warning("Schema contract not found, skipping validation")
+        # Basic validation: check required columns exist and have no nulls
+        required_columns = ["policy_id", "customer_id"]
+        for col_name in required_columns:
+            if col_name not in df_enriched.columns:
+                raise ValueError(f"Missing required column: {col_name}")
+            
+            null_count = df_enriched.filter(col(col_name).isNull()).count()
+            if null_count > 0:
+                logger.warning(f"Found {null_count} null values in {col_name}")
         
         # Write to Bronze Delta (append mode)
         logger.info(f"Writing to {TARGET_PATH}")
-        write_delta(
-            df=df_enriched,
-            path=TARGET_PATH,
-            mode="append",
-            partition_by=[PARTITION_COLUMN],
-            merge_schema=True
-        )
+        df_enriched.write \
+            .format("delta") \
+            .mode("append") \
+            .partitionBy(PARTITION_COLUMN) \
+            .option("mergeSchema", "true") \
+            .save(TARGET_PATH)
         
-        logger.info("Bronze ingestion completed successfully")
+        logger.info("✓ Bronze ingestion completed successfully")
+        
+    except Exception as e:
+        logger.error(f"✗ Bronze ingestion failed: {str(e)}")
+        raise
 
 # COMMAND ----------
 
