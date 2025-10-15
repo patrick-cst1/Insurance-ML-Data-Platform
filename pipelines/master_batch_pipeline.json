@@ -118,24 +118,11 @@
       }
     },
     {
-      "name": "Silver_Enrich_Cosmos",
-      "type": "Notebook",
-      "dependsOn": [
-        {
-          "activity": "Silver_DQ_Checks",
-          "dependencyConditions": ["Succeeded"]
-        }
-      ],
-      "typeProperties": {
-        "notebookPath": "/lakehouse/silver/notebooks/enrich_from_cosmos"
-      }
-    },
-    {
       "name": "Gold_Claims_Features",
       "type": "Notebook",
       "dependsOn": [
         {
-          "activity": "Silver_Enrich_Cosmos",
+          "activity": "Silver_DQ_Checks",
           "dependencyConditions": ["Succeeded"]
         }
       ],
@@ -148,7 +135,7 @@
       "type": "Notebook",
       "dependsOn": [
         {
-          "activity": "Silver_Enrich_Cosmos",
+          "activity": "Silver_DQ_Checks",
           "dependencyConditions": ["Succeeded"]
         }
       ],

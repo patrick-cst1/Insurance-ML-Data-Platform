@@ -40,15 +40,14 @@ stages:
                   displayName: 'Deploy to Fabric Workspace'
                   env:
                     FABRIC_TOKEN: $(fabric_token)
-                    COSMOS_ENDPOINT: $(cosmos_endpoint)
-                    COSMOS_KEY: $(cosmos_key)
                 
                 - script: |
-                  echo "Deployment summary:"
-                  echo "- Workspace: Insurance-ML-Platform"
-                  echo "- Components: Lakehouses (3), KQL DB (1), Pipelines (2)"
-                  echo "- Purview Integration: ENABLED (auto-discovery)"
-                  echo "- Status: SUCCESS ✓"
+                    echo "Deployment summary:"
+                    echo "- Workspace: Insurance-ML-Platform"
+                    echo "- Components: Lakehouses (3), KQL DB (1), Pipelines (2), Warehouse (optional)"
+                    echo "- Architecture: 100% Fabric Native (Event Medallion)"
+                    echo "- Purview Integration: ENABLED (auto-discovery)"
+                    echo "- Status: SUCCESS ✓"
                   displayName: 'Deployment summary'
                 
                 - script: |

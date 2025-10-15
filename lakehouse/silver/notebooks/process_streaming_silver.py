@@ -1,11 +1,14 @@
 # Azure Fabric notebook source
 """
-Silver Layer: Process streaming events for validation and deduplication
-This notebook processes events from Bronze realtime table or directly from KQL
+Silver Layer: Process streaming policy status changes
+Real-time data: Policy status updates (ACTIVE, SUSPENDED, CANCELLED, RENEWED)
+Batch data: Historical policy records (CSV ingestion)
+
+This avoids overlap - streaming processes real-time events, batch processes historical data
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, window, row_number, current_timestamp, to_date
+from pyspark.sql.functions import col, row_number, current_timestamp, to_date
 from pyspark.sql.window import Window
 import sys
 import os
@@ -25,23 +28,23 @@ def main():
     
     with PipelineTimer(logger, "process_streaming_silver"):
         
-        # Read from Bronze realtime events
+        # Read from Bronze realtime policy events
         try:
-            df_bronze_stream = read_delta(spark, "Tables/bronze_realtime_events")
-            logger.info(f"Read {df_bronze_stream.count()} streaming events from Bronze")
+            df_bronze_stream = read_delta(spark, "Tables/bronze_realtime_policy_events")
+            logger.info(f"Read {df_bronze_stream.count()} streaming policy events from Bronze")
         except Exception as e:
-            logger.warning(f"bronze_realtime_events table not found or empty: {e}")
-            logger.info("Skipping streaming processing - no realtime events available")
+            logger.warning(f"bronze_realtime_policy_events table not found or empty: {e}")
+            logger.info("Skipping streaming processing - no realtime policy events available")
             return
         
         # Validation: remove invalid records
         df_valid = df_bronze_stream \
-            .filter(col("claim_id").isNotNull()) \
-            .filter(col("amount") > 0) \
-            .filter(col("status").isNotNull())
+            .filter(col("policy_id").isNotNull()) \
+            .filter(col("event_type").isNotNull()) \
+            .filter(col("new_status").isNotNull())
         
-        # Deduplication: keep latest event per claim_id
-        window_spec = Window.partitionBy("claim_id").orderBy(col("event_time").desc())
+        # Deduplication: keep latest event per policy_id  
+        window_spec = Window.partitionBy("policy_id").orderBy(col("event_time").desc())
         df_dedup = df_valid \
             .withColumn("rn", row_number().over(window_spec)) \
             .filter("rn = 1") \
@@ -53,24 +56,24 @@ def main():
             .withColumn("ingestion_date", to_date(current_timestamp()))
         
         # Data quality check
-        null_check = check_nulls(df_output, columns=["claim_id", "amount"], threshold=0.0)
+        null_check = check_nulls(df_output, columns=["policy_id", "new_status"], threshold=0.0)
         if not null_check["passed"]:
             logger.error(f"Streaming data quality failed: {null_check['violations']}")
         
-        logger.info(f"Writing {df_output.count()} validated streaming records to Silver")
+        logger.info(f"Writing {df_output.count()} validated streaming policy events to Silver")
         
         # Write to Silver streaming table
-        metadata = PurviewMetadata.get_silver_metadata("silver_realtime_claims", has_scd2=False, pii=False)
+        metadata = PurviewMetadata.get_silver_metadata("silver_realtime_policy_events", has_scd2=False, pii=False)
         write_delta(
             df=df_output,
-            path="Tables/silver_realtime_claims",
+            path="Tables/silver_realtime_policy_events",
             mode="overwrite",
             partition_by=["ingestion_date"],
             description=metadata["description"],
             tags=metadata["tags"]
         )
         
-        logger.info("Streaming Silver processing completed")
+        logger.info("✓ Streaming Silver processing completed - policy status changes processed")
 
 # COMMAND ----------
 

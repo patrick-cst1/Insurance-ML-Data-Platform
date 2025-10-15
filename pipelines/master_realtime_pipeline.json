@@ -1,0 +1,51 @@
+{
+  "name": "master_realtime_pipeline",
+  "description": "Real-time Event Medallion: Process streaming policy updates (Bronze → Silver → Gold)",
+  "activities": [
+    {
+      "name": "Process_Streaming_Silver",
+      "type": "Notebook",
+      "dependsOn": [],
+      "policy": {
+        "timeout": "0.00:15:00",
+        "retry": 2,
+        "retryIntervalInSeconds": 30
+      },
+      "typeProperties": {
+        "notebookPath": "/lakehouse/silver/notebooks/process_streaming_silver",
+        "baseParameters": {}
+      }
+    },
+    {
+      "name": "Sync_KQL_Aggregations",
+      "type": "Notebook",
+      "dependsOn": [
+        {
+          "activity": "Process_Streaming_Silver",
+          "dependencyConditions": ["Succeeded"]
+        }
+      ],
+      "policy": {
+        "timeout": "0.00:10:00",
+        "retry": 2,
+        "retryIntervalInSeconds": 30
+      },
+      "typeProperties": {
+        "notebookPath": "/lakehouse/gold/notebooks/aggregate_streaming_features",
+        "baseParameters": {}
+      }
+    }
+  ],
+  "triggers": [
+    {
+      "name": "Hourly_Realtime_Processing",
+      "type": "ScheduleTrigger",
+      "recurrence": {
+        "frequency": "Hour",
+        "interval": 1,
+        "startTime": "2025-01-01T00:00:00Z",
+        "timeZone": "UTC"
+      }
+    }
+  ]
+}

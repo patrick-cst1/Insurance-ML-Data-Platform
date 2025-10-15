@@ -120,21 +120,6 @@ gold_risk_features:
     - expectation_type: expect_table_row_count_to_be_between
       min_value: 1
 
-silver_policies_enriched:
-  suite_name: silver_policies_enriched_suite
-  expectations:
-    - expectation_type: expect_column_values_to_not_be_null
-      column: policy_id
-    - expectation_type: expect_column_values_to_not_be_null
-      column: customer_id
-    - expectation_type: expect_column_values_to_be_between
-      column: risk_score
-      min_value: 0
-      max_value: 100
-      mostly: 0.95
-    - expectation_type: expect_table_row_count_to_be_between
-      min_value: 1
-
 silver_realtime_claims:
   suite_name: silver_realtime_claims_suite
   expectations:

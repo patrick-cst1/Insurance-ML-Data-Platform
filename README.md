@@ -24,10 +24,10 @@
 
 This repository provides a **reusable, production-grade data engineering framework** for insurance ML workflows on Microsoft Fabric, implementing:
 
-- ✅ **Medallion Architecture** (Bronze → Silver → Gold) for data quality and governance
-- ✅ **Batch + Real-time** processing with dual-sink pattern for unified analytics
+- ✅ **Fabric Native Architecture** - 100% Fabric services (Lakehouse, KQL, Warehouse)
+- ✅ **Event Medallion Pattern** - Real-time KQL + Batch Lakehouse unified architecture
 - ✅ **Point-in-time correctness** ensuring ML training/inference consistency
-- ✅ **NoSQL enrichment** via Azure Cosmos DB for external data integration
+- ✅ **Zero external dependencies** - OneLake storage, native data sharing
 - ✅ **Automated CI/CD** deployment across environments
 - ✅ **Framework reusability** - configuration-driven design for rapid project adaptation
 
@@ -36,8 +36,8 @@ This repository provides a **reusable, production-grade data engineering framewo
 | Feature | Description | Technology |
 |---------|-------------|------------|
 | **Medallion Layers** | Bronze (raw) → Silver (curated) → Gold (ML features) | Delta Lake, PySpark |
-| **Dual-Sink Streaming** | Real-time events → KQL (low-latency) + Lakehouse (batch replay) | Eventstream, KQL Database |
-| **NoSQL Enrichment** | External risk scores & underwriting data integration | Azure Cosmos DB |
+| **Event Medallion** | Real-time KQL aggregations + Lakehouse sync for ML | Eventstream, KQL Database, Lakehouse |
+| **Fabric Native** | OneLake storage, SQL Endpoint, Warehouse (optional) | Fabric Lakehouse, Warehouse |
 | **Point-in-Time Join** | SCD Type 2 + feature timestamps for temporal consistency | Delta Lake, Spark SQL |
 | **Data Quality** | Schema contracts, null checks, duplicate detection, freshness SLA, Great Expectations | Great Expectations 0.18.x (SparkDFDataset), Custom validators |
 | **Data Governance** | Auto data catalog, lineage tracking, metadata management | Microsoft Purview Hub (native) |
@@ -50,21 +50,23 @@ This repository provides a **reusable, production-grade data engineering framewo
 
 ```mermaid
 graph LR
-    A[CSV Files] -->|Batch Ingest| B[Bronze Layer]
+    A[CSV Files] -->|Batch Ingest| B[Bronze Lakehouse]
     E[Real-time Events] -->|Eventstream| F[KQL Database]
     E -->|Dual-Sink| B
-    B -->|Clean & Validate| C[Silver Layer]
-    G[(Cosmos DB)] -->|Enrich| C
-    C -->|Feature Engineering| D[Gold Layer]
-    F -->|Real-time Agg| H[Gold KQL Views]
-    D -->|Batch Features| I[ML Training]
-    H -->|Online Features| J[Inference]
+    B -->|Clean & Validate| C[Silver Lakehouse]
+    C -->|Feature Engineering| D[Gold Lakehouse]
+    F -->|KQL Materialized Views| H[Real-time Agg]
+    H -->|Hourly Sync| D
+    D -->|DirectLake/SQL| I[Power BI]
+    D -->|PySpark| J[ML Training]
+    D -->|Optional Sync| K[Fabric Warehouse]
+    K -->|T-SQL| L[BI Tools]
     
     style B fill:#CD853F
     style C fill:#C0C0C0
     style D fill:#FFD700
-    style G fill:#4B0082
     style F fill:#20B2AA
+    style K fill:#4169E1
 ```
 
 ### Data Flow Sequence
@@ -72,19 +74,20 @@ graph LR
 ```mermaid
 sequenceDiagram
     participant Source as Data Sources
-    participant Bronze as Bronze Layer
-    participant Cosmos as Cosmos DB
-    participant Silver as Silver Layer
-    participant Gold as Gold Layer
+    participant Bronze as Bronze Lakehouse
+    participant KQL as KQL Database
+    participant Silver as Silver Lakehouse
+    participant Gold as Gold Lakehouse
     participant ML as ML Pipelines
     
     Source->>Bronze: 1. Ingest Raw Data
     Note over Bronze: Immutable, Append-Only
     Bronze->>Silver: 2. Clean & Validate
-    Cosmos-->>Silver: 3. Enrich with External Data
     Note over Silver: SCD Type 2, DQ Checks
-    Silver->>Gold: 4. Feature Engineering
-    Note over Gold: Time-window aggregations<br/>Point-in-time features
+    Silver->>Gold: 3. Feature Engineering
+    Note over KQL: Real-time Aggregations<br/>(Materialized Views)
+    KQL->>Gold: 4. Hourly Sync
+    Note over Gold: Batch + Real-time Features
     Gold->>ML: 5. Serve Features
     Note over ML: Training & Inference
 ```
@@ -95,7 +98,7 @@ sequenceDiagram
 |-----------|-------------|------------------|
 | **Lakehouse Storage** | Delta Lake tables with ACID transactions | Microsoft Fabric Lakehouse, Delta Lake 3.0 |
 | **Data Processing** | Distributed ETL/ELT transformations | PySpark 3.5 (Fabric runtime) |
-| **NoSQL Database** | External enrichment data store | Azure Cosmos DB (NoSQL API) |
+| **SQL Access** | SQL endpoint (automatic) + Warehouse (optional) | Lakehouse SQL Endpoint, Fabric Warehouse |
 | **Streaming** | Real-time event ingestion & processing | Eventstream, KQL Database |
 | **Orchestration** | Pipeline scheduling & dependencies | Fabric Data Pipelines (master pipelines) |
 | **CI/CD** | Automated deployment automation | Azure DevOps, Fabric Deployment Pipelines |
@@ -198,10 +201,8 @@ Insurance-ML-Data-Platform/
 │   │   ├── claims.csv                         # Sample claims data
 │   │   ├── customers.csv                      # Sample customer data
 │   │   └── agents.csv                         # Sample agent data
-│   ├── streaming/
-│   │   └── realtime_claims_events.json        # Sample real-time events
-│   └── nosql/
-│       └── policy_enrichment_data.json        # Sample Cosmos DB enrichment data
+│   └── streaming/
+│       └── realtime_policy_events.json        # Sample real-time policy status changes
 │
 ├── monitoring/                        # Monitoring & Reporting (3 files)
 │   ├── dashboards/                    # JSON dashboard definitions (2 dashboards)
@@ -221,10 +222,9 @@ Insurance-ML-Data-Platform/
 ### Prerequisites
 
 - Azure subscription with Microsoft Fabric capacity
-- Azure Cosmos DB account (NoSQL API)
-- Azure DevOps project
-- GitHub repository (or Azure DevOps Git)
-- Python 3.9+
+- Azure DevOps project (for CI/CD)
+- GitHub repository or Azure DevOps Git (optional - can use Fabric Git Integration)
+- Python 3.9+ (for local validation only, not required for Fabric deployment)
 
 ### Installation & Setup
 
@@ -250,23 +250,15 @@ python -c "import yaml; print(yaml.safe_load(open('devops/parameters/fabric.yml'
    # Update workspace ID in devops/parameters/fabric.yml
    ```
 
-2. **Configure Cosmos DB**
-   ```bash
-   # Create Cosmos DB account (NoSQL API)
-   # Create containers: policy-enrichment, customer-risk-profiles
-   # Import sample data from samples/nosql/
-   ```
-
-3. **Setup Azure Key Vault**
+2. **Setup Azure Key Vault**
    ```bash
    # Create Key Vault: kv-insurance-ml-platform
    # Store secrets:
-   # - cosmosEndpoint, cosmosKey
-   # - fabricToken (service principal)
+   # - fabricToken (service principal for deployment)
    # Grant access to Azure DevOps service connection
    ```
 
-4. **Configure Azure DevOps**
+3. **Configure Azure DevOps**
    ```bash
    # Import pipelines:
    # - devops/pipelines/azure-pipelines-ci.yml (PR validation)
@@ -275,12 +267,12 @@ python -c "import yaml; print(yaml.safe_load(open('devops/parameters/fabric.yml'
    # Create Variable Group 'Fabric-Secrets':
    # - azureServiceConnection: <your-azure-service-connection>
    # - keyVaultName: kv-insurance-ml-platform
-   # Ensure Key Vault secrets exist with names:
-   #   fabric_token, cosmos_endpoint, cosmos_key
+   # Ensure Key Vault secret exists:
+   #   fabric_token
    # Link Variable Group to Key Vault
    ```
 
-5. **Deploy Code to Fabric**
+4. **Deploy Code to Fabric**
    ```bash
    # Option A: Azure DevOps Pipeline
    git push origin main  # Triggers azure-pipelines-cd.yml
@@ -293,7 +285,7 @@ python -c "import yaml; print(yaml.safe_load(open('devops/parameters/fabric.yml'
    # Configure Fabric Workspace → Git integration → Azure DevOps repo
    ```
 
-6. **Initialize Control Tables**
+5. **Initialize Control Tables**
    ```bash
    # In Fabric Workspace, run initialization script:
    # framework/setup/init_control_tables.py
@@ -348,8 +340,7 @@ All testing and validation are performed directly in Microsoft Fabric workspace 
 **2. End-to-End Pipeline Testing:**
 ```bash
 # Execute master_batch_pipeline in Fabric to test complete flow:
-# Bronze ingestion → Silver cleaning → Silver DQ checks → 
-# Silver Cosmos enrichment → Gold feature engineering
+# Bronze ingestion → Silver cleaning → Silver DQ checks → Gold feature engineering
 # 
 # Validates:
 # - Data ingestion from CSV sources
@@ -366,13 +357,13 @@ All testing and validation are performed directly in Microsoft Fabric workspace 
 # 
 # Validates:
 # - Bronze Layer (5 tables): bronze_policies, bronze_claims, bronze_customers, 
-#   bronze_agents, bronze_realtime_events
-# - Silver Layer (6 tables): silver_policies, silver_claims, silver_customers, 
-#   silver_agents, silver_policies_enriched, silver_realtime_claims
+#   bronze_agents, bronze_realtime_policy_events
+# - Silver Layer (5 tables): silver_policies, silver_claims, silver_customers, 
+#   silver_agents, silver_realtime_policy_events
 # - Gold Layer (4 tables): gold_claims_features, gold_customer_features, 
-#   gold_risk_features, gold_streaming_features
+#   gold_risk_features, gold_realtime_policy_activity
 # - Control tables (2 tables): watermark_control, dq_check_results
-# - Framework libraries imports (10 modules)
+# - Framework libraries imports (9 modules)
 ```
 
 **4. Maintenance Operations:**
@@ -484,25 +475,6 @@ else:
 **When to Use Which:**
 - **Standard Validators**: Inline checks in transformation notebooks (clean_*.py), fast comprehensive checks (dq_checks.py)
 - **Great Expectations**: Optional deep validation gate (dq_checks_with_great_expectations.py), advanced statistical profiling
-
-### Cosmos DB Enrichment
-
-```python
-from framework.libs.cosmos_io import enrich_dataframe
-
-# Enrich policies with external risk scores
-enriched_df = enrich_dataframe(
-    spark=spark,
-    df=policies_df,
-    cosmos_endpoint=cosmos_endpoint,
-    cosmos_key=cosmos_key,
-    cosmos_database="insurance",
-    cosmos_container="policy-enrichment",
-    join_keys=["policy_id"],
-    select_columns=["risk_score", "underwriting_flags"],
-    broadcast_cosmos=True  # For small Cosmos datasets
-)
-```
 
 ### Point-in-Time Feature Join
 
@@ -646,7 +618,43 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 👥 Author
 
-**Patrick Cheung**  
+## 🚀 Fabric Native Services
+
+### Data Output Options
+
+| Output Method | Use Case | Setup |
+|---------------|----------|-------|
+| **Lakehouse Tables** | ML training, Spark workloads | ✅ Default |
+| **Lakehouse SQL Endpoint** | SQL queries, BI tools | ✅ Auto-enabled |
+| **KQL Database** | Real-time dashboards | ✅ Configured |
+| **Fabric Warehouse** | Advanced SQL (optional) | Run `lakehouse/gold/notebooks/sync_to_warehouse.py` |
+
+### Real-time Alerting (Fabric Activator)
+
+Setup instructions: `streaming/activator/README_ACTIVATOR_SETUP.txt`
+
+**Pre-configured alerts**:
+- High-value claims (amount > $50,000)
+- Urgent status notifications
+- Potential fraud detection (multiple claims)
+
+### Fabric Git Integration (Recommended Deployment)
+
+**Setup**:
+1. Fabric Workspace → Settings → Git Integration
+2. Connect to Azure DevOps repository
+3. Select branch (main)
+4. Click "Sync" → Auto-deploy on commit
+
+**Benefits**:
+- ✅ No custom deployment scripts
+- ✅ Auto-sync on git push
+- ✅ Native Fabric feature
+- ✅ Built-in version control
+
+---
+
+**Author**: Patrick Cheung  
 Built for production ML workflows on Microsoft Fabric
 
 For questions, issues, or contributions, please open a GitHub issue or contact the maintainers.
@@ -657,6 +665,6 @@ For questions, issues, or contributions, please open a GitHub issue or contact t
 
 **[⬆ Back to Top](#insurance-ml-data-platform)**
 
-Made with Microsoft Fabric | Powered by Delta Lake | Secured by Azure
+Made with 100% Fabric Native Services | Powered by Delta Lake | Secured by Azure
 
 </div>

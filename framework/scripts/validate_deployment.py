@@ -65,7 +65,7 @@ class DeploymentValidator:
             ("Tables/bronze_claims", "bronze_claims", False),
             ("Tables/bronze_customers", "bronze_customers", False),
             ("Tables/bronze_agents", "bronze_agents", False),
-            ("Tables/bronze_realtime_events", "bronze_realtime_events", True)  # Optional - streaming
+            ("Tables/bronze_realtime_policy_events", "bronze_realtime_policy_events", True)  # Optional - streaming
         ]
         
         results = []
@@ -86,8 +86,7 @@ class DeploymentValidator:
             ("Tables/silver_claims", "silver_claims", False),
             ("Tables/silver_customers", "silver_customers", False),
             ("Tables/silver_agents", "silver_agents", False),
-            ("Tables/silver_policies_enriched", "silver_policies_enriched", True),  # Optional - Cosmos
-            ("Tables/silver_realtime_claims", "silver_realtime_claims", True)  # Optional - streaming
+            ("Tables/silver_realtime_policy_events", "silver_realtime_policy_events", True)  # Optional - streaming
         ]
         
         results = []
@@ -118,7 +117,7 @@ class DeploymentValidator:
             ("Tables/gold_claims_features", "gold_claims_features", False),
             ("Tables/gold_customer_features", "gold_customer_features", False),
             ("Tables/gold_risk_features", "gold_risk_features", False),
-            ("Tables/gold_streaming_features", "gold_streaming_features", True)  # Optional - streaming
+            ("Tables/gold_realtime_policy_activity", "gold_realtime_policy_activity", True)  # Optional - streaming
         ]
         
         results = []
