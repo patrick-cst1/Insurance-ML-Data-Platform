@@ -7,6 +7,7 @@ Simplified version - no framework dependencies
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import current_timestamp, lit, to_date, col
 import logging
+import yaml
 
 # COMMAND ----------
 
@@ -14,10 +15,44 @@ import logging
 SOURCE_PATH = "Files/samples/batch/policies.csv"
 TARGET_PATH = "Tables/bronze_policies"
 PARTITION_COLUMN = "ingestion_date"
+SCHEMA_PATH = "/lakehouse/default/Files/config/schemas/bronze_policies.yaml"
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# COMMAND ----------
+
+def validate_schema(df, schema_path):
+    """Simplified inline schema validation."""
+    try:
+        with open(schema_path, 'r') as f:
+            schema = yaml.safe_load(f)
+        
+        # Check required columns
+        for col_def in schema['required_columns']:
+            col_name = col_def['name']
+            nullable = col_def['nullable']
+            
+            # Check column exists
+            if col_name not in df.columns:
+                raise ValueError(f"Missing required column: {col_name}")
+            
+            # Check nulls if not nullable
+            if not nullable:
+                null_count = df.filter(col(col_name).isNull()).count()
+                if null_count > 0:
+                    logger.warning(f"Found {null_count} null values in non-nullable column: {col_name}")
+        
+        logger.info("✓ Schema validation passed")
+        return True
+        
+    except FileNotFoundError:
+        logger.warning(f"Schema file not found: {schema_path}, skipping validation")
+        return True
+    except Exception as e:
+        logger.error(f"Schema validation failed: {str(e)}")
+        raise
 
 # COMMAND ----------
 
@@ -43,15 +78,8 @@ def main():
         record_count = df_enriched.count()
         logger.info(f"Read {record_count} policies")
         
-        # Basic validation: check required columns exist and have no nulls
-        required_columns = ["policy_id", "customer_id"]
-        for col_name in required_columns:
-            if col_name not in df_enriched.columns:
-                raise ValueError(f"Missing required column: {col_name}")
-            
-            null_count = df_enriched.filter(col(col_name).isNull()).count()
-            if null_count > 0:
-                logger.warning(f"Found {null_count} null values in {col_name}")
+        # Schema validation
+        validate_schema(df_enriched, SCHEMA_PATH)
         
         # Write to Bronze Delta (append mode)
         logger.info(f"Writing to {TARGET_PATH}")

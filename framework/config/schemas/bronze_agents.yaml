@@ -1,0 +1,31 @@
+# Bronze Layer: Agents Schema Contract
+# Simplified version - demo purposes only
+
+table_name: bronze_agents
+layer: bronze
+
+required_columns:
+  - name: agent_id
+    type: string
+    nullable: false
+    
+  - name: name
+    type: string
+    nullable: true
+    
+  - name: agent_type
+    type: string
+    nullable: true
+    
+  - name: region
+    type: string
+    nullable: true
+    
+  - name: status
+    type: string
+    nullable: true
+
+metadata_columns:
+  - ingestion_timestamp
+  - ingestion_date
+  - source_system

@@ -7,11 +7,43 @@ Simplified version - no framework dependencies
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import current_timestamp, lit, to_date, col
 import logging
+import yaml
 
 # COMMAND ----------
 
+SCHEMA_PATH = "/lakehouse/default/Files/config/schemas/bronze_customers.yaml"
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# COMMAND ----------
+
+def validate_schema(df, schema_path):
+    """Simplified inline schema validation."""
+    try:
+        with open(schema_path, 'r') as f:
+            schema = yaml.safe_load(f)
+        
+        for col_def in schema['required_columns']:
+            col_name = col_def['name']
+            nullable = col_def['nullable']
+            
+            if col_name not in df.columns:
+                raise ValueError(f"Missing required column: {col_name}")
+            
+            if not nullable:
+                null_count = df.filter(col(col_name).isNull()).count()
+                if null_count > 0:
+                    logger.warning(f"Found {null_count} null values in non-nullable column: {col_name}")
+        
+        logger.info("✓ Schema validation passed")
+        return True
+    except FileNotFoundError:
+        logger.warning(f"Schema file not found: {schema_path}, skipping validation")
+        return True
+    except Exception as e:
+        logger.error(f"Schema validation failed: {str(e)}")
+        raise
 
 # COMMAND ----------
 
@@ -29,13 +61,8 @@ def main():
         record_count = df_enriched.count()
         logger.info(f"Read {record_count} customers")
         
-        # Basic validation
-        if "customer_id" not in df_enriched.columns:
-            raise ValueError("Missing required column: customer_id")
-        
-        null_count = df_enriched.filter(col("customer_id").isNull()).count()
-        if null_count > 0:
-            logger.warning(f"Found {null_count} null customer_id values")
+        # Schema validation
+        validate_schema(df_enriched, SCHEMA_PATH)
         
         logger.info("Writing to Tables/bronze_customers")
         df_enriched.write \

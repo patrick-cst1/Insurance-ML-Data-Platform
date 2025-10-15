@@ -1,0 +1,44 @@
+{
+  "name": "master_realtime_pipeline",
+  "description": "Real-time claims processing: Eventstream → Bronze → Silver → Gold (with KQL sync)",
+  "activities": [
+    {
+      "name": "Process_Realtime_Claims",
+      "type": "Notebook",
+      "dependsOn": [],
+      "policy": {
+        "timeout": "0.00:30:00",
+        "retry": 2,
+        "retryIntervalInSeconds": 30
+      },
+      "typeProperties": {
+        "notebookPath": "/lakehouse/silver/notebooks/process_realtime_claims"
+      }
+    },
+    {
+      "name": "Sync_KQL_to_Gold",
+      "type": "Notebook",
+      "dependsOn": [
+        {
+          "activity": "Process_Realtime_Claims",
+          "dependencyConditions": ["Succeeded"]
+        }
+      ],
+      "typeProperties": {
+        "notebookPath": "/lakehouse/gold/notebooks/sync_kql_to_gold"
+      }
+    }
+  ],
+  "triggers": [
+    {
+      "name": "HourlySchedule",
+      "type": "ScheduleTrigger",
+      "recurrence": {
+        "frequency": "Hour",
+        "interval": 1,
+        "startTime": "2025-01-01T00:00:00Z",
+        "timeZone": "UTC"
+      }
+    }
+  ]
+}

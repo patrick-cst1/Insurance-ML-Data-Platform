@@ -1,0 +1,38 @@
+{
+  "name": "claims_eventstream",
+  "description": "Real-time claims events ingestion with dual-sink (KQL + Lakehouse)",
+  "source": {
+    "type": "CustomApp",
+    "name": "claims_events_source",
+    "description": "Custom application publishing claims events"
+  },
+  "destinations": [
+    {
+      "type": "KQLDatabase",
+      "name": "kql_realtime_claims",
+      "database": "insurance_realtime",
+      "table": "claims_events",
+      "mappingRuleName": "claims_mapping",
+      "description": "KQL sink for low-latency real-time queries"
+    },
+    {
+      "type": "Lakehouse",
+      "name": "bronze_claims_events",
+      "lakehouse": "lh_bronze",
+      "table": "bronze_claims_events",
+      "mode": "append",
+      "description": "Lakehouse sink for historical batch ML training"
+    }
+  ],
+  "dataFormat": {
+    "type": "Json",
+    "properties": {
+      "claim_id": "string",
+      "policy_id": "string",
+      "customer_id": "string",
+      "claim_amount": "decimal",
+      "claim_status": "string",
+      "event_timestamp": "datetime"
+    }
+  }
+}

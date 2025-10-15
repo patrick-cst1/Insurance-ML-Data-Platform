@@ -1,0 +1,27 @@
+// KQL Database: Create real-time claims events table
+// Simplified version - demo purposes only
+
+.create table claims_events (
+    claim_id: string,
+    policy_id: string,
+    customer_id: string,
+    claim_amount: decimal,
+    claim_status: string,
+    event_timestamp: datetime
+)
+
+// Create mapping for Eventstream ingestion
+.create table claims_events ingestion json mapping 'claims_mapping'
+```
+[
+    {"column": "claim_id", "path": "$.claim_id"},
+    {"column": "policy_id", "path": "$.policy_id"},
+    {"column": "customer_id", "path": "$.customer_id"},
+    {"column": "claim_amount", "path": "$.claim_amount"},
+    {"column": "claim_status", "path": "$.claim_status"},
+    {"column": "event_timestamp", "path": "$.event_timestamp"}
+]
+```
+
+// Enable streaming ingestion
+.alter table claims_events policy streamingingestion enable

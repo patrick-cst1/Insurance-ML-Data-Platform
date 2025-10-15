@@ -1,0 +1,27 @@
+// KQL: Real-time aggregations for monitoring
+// Simplified version - demo purposes only
+
+// Hourly claims aggregation (materialized view)
+.create materialized-view with (backfill=true) claims_hourly on table claims_events
+{
+    claims_events
+    | summarize 
+        claims_count = count(),
+        total_amount = sum(claim_amount),
+        avg_amount = avg(claim_amount),
+        max_amount = max(claim_amount)
+      by customer_id, bin(event_timestamp, 1h)
+}
+
+// High-value claims alert query
+claims_events
+| where claim_amount > 50000
+| where event_timestamp > ago(1h)
+| project event_timestamp, claim_id, policy_id, customer_id, claim_amount, claim_status
+| order by claim_amount desc
+
+// Claims by status (last 24 hours)
+claims_events
+| where event_timestamp > ago(24h)
+| summarize count() by claim_status
+| render piechart

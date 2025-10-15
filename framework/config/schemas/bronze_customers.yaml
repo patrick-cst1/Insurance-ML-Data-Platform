@@ -1,0 +1,35 @@
+# Bronze Layer: Customers Schema Contract
+# Simplified version - demo purposes only
+
+table_name: bronze_customers
+layer: bronze
+
+required_columns:
+  - name: customer_id
+    type: string
+    nullable: false
+    
+  - name: name
+    type: string
+    nullable: true
+    
+  - name: age
+    type: integer
+    nullable: true
+    
+  - name: gender
+    type: string
+    nullable: true
+    
+  - name: location
+    type: string
+    nullable: true
+    
+  - name: join_date
+    type: date
+    nullable: true
+
+metadata_columns:
+  - ingestion_timestamp
+  - ingestion_date
+  - source_system

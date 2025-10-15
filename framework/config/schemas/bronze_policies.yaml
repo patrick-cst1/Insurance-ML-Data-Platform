@@ -1,0 +1,36 @@
+# Bronze Layer: Policies Schema Contract
+# Simplified version - demo purposes only
+
+table_name: bronze_policies
+layer: bronze
+
+required_columns:
+  - name: policy_id
+    type: string
+    nullable: false
+    
+  - name: customer_id
+    type: string
+    nullable: false
+    
+  - name: product_type
+    type: string
+    nullable: true
+    
+  - name: premium
+    type: double
+    nullable: true
+    
+  - name: status
+    type: string
+    nullable: true
+    
+  - name: start_date
+    type: date
+    nullable: true
+
+# Metadata columns (auto-added during ingestion)
+metadata_columns:
+  - ingestion_timestamp
+  - ingestion_date
+  - source_system

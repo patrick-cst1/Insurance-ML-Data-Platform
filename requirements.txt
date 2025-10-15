@@ -3,7 +3,8 @@
 
 pyspark==3.5.0
 delta-spark==3.0.0
+pyyaml==6.0.1  # For schema contract validation
 
 # All development and testing are performed directly in Microsoft Fabric workspace
-# No framework libraries or external dependencies required
+# No complex framework libraries required - all code inline in notebooks
 # Deployment via Fabric Git Integration (recommended)

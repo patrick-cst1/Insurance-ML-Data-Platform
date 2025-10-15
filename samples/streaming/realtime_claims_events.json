@@ -1,0 +1,42 @@
+[
+  {
+    "claim_id": "CLM-RT-001",
+    "policy_id": "POL-1001",
+    "customer_id": "CUST-001",
+    "claim_amount": 15000.50,
+    "claim_status": "SUBMITTED",
+    "event_timestamp": "2025-01-15T10:30:00Z"
+  },
+  {
+    "claim_id": "CLM-RT-002",
+    "policy_id": "POL-1005",
+    "customer_id": "CUST-005",
+    "claim_amount": 75000.00,
+    "claim_status": "APPROVED",
+    "event_timestamp": "2025-01-15T10:35:00Z"
+  },
+  {
+    "claim_id": "CLM-RT-003",
+    "policy_id": "POL-1003",
+    "customer_id": "CUST-003",
+    "claim_amount": 8500.25,
+    "claim_status": "UNDER_REVIEW",
+    "event_timestamp": "2025-01-15T10:40:00Z"
+  },
+  {
+    "claim_id": "CLM-RT-004",
+    "policy_id": "POL-1007",
+    "customer_id": "CUST-007",
+    "claim_amount": 120000.00,
+    "claim_status": "SUBMITTED",
+    "event_timestamp": "2025-01-15T10:45:00Z"
+  },
+  {
+    "claim_id": "CLM-RT-005",
+    "policy_id": "POL-1002",
+    "customer_id": "CUST-002",
+    "claim_amount": 3200.75,
+    "claim_status": "PAID",
+    "event_timestamp": "2025-01-15T10:50:00Z"
+  }
+]
