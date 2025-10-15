@@ -5,7 +5,7 @@ Schema-driven type casting from silver schema YAML (streaming)
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, trim, upper, current_timestamp, lit, to_date
+from pyspark.sql.functions import col, trim, upper, current_timestamp, lit, to_date, to_timestamp
 import logging
 import yaml
 
@@ -43,6 +43,9 @@ def apply_schema_transformations(df, schema_path):
             df = df.withColumn(col_name, col(col_name).cast("int"))
         elif col_type == 'date':
             df = df.withColumn(col_name, to_date(col(col_name)))
+        elif col_type == 'timestamp':
+            df = df.withColumn(col_name, to_timestamp(col(col_name)))
+        # string type - no casting needed
         
         # Apply nullable filter
         if not col_def['nullable']:
@@ -56,6 +59,24 @@ def apply_schema_transformations(df, schema_path):
                 elif rule['rule'] == 'less_than':
                     df = df.filter(col(col_name) < rule['value'])
     
+    # Handle event-specific columns (e.g., event_timestamp)
+    for col_def in schema.get('event_columns', []):
+        col_name = col_def['name']
+        col_type = col_def['type']
+        
+        if col_type == 'timestamp':
+            df = df.withColumn(col_name, to_timestamp(col(col_name)))
+        elif col_type == 'date':
+            df = df.withColumn(col_name, to_date(col(col_name)))
+        elif col_type == 'double':
+            df = df.withColumn(col_name, col(col_name).cast("double"))
+        elif col_type == 'integer':
+            df = df.withColumn(col_name, col(col_name).cast("int"))
+        # string type - no casting needed
+        
+        if not col_def.get('nullable', True):
+            df = df.filter(col(col_name).isNotNull())
+
     return df
 
 # COMMAND ----------
